@@ -556,3 +556,14 @@ body.is-reading .storage-warning { position: fixed; z-index: 20; top: calc(64px 
 .reader.is-idle .reader__top { opacity: 1; }
 .reader.is-idle .reader__top > * { opacity: 0.25; }
 @media (prefers-reduced-motion: reduce) { .reader__top > * { transition: none; } }
+
+/* Practice is an action, separate from personal scripts and backup files. */
+.tutorial-entry { display: flex; width: 100%; gap: 14px; align-items: center; margin: 12px 0 20px; padding: 16px; border: 1px solid rgba(201,165,92,.3); border-radius: var(--radius-m); background: rgba(201,165,92,.05); color: var(--text); text-align: left; cursor: pointer; }
+.tutorial-entry > span:nth-child(2) { flex: 1; min-width: 0; }
+.tutorial-entry strong { display: block; font: 600 15px var(--font-body); }
+.tutorial-entry small { display: block; margin-top: 5px; color: var(--muted); font: 13px/1.5 var(--font-body); }
+.tutorial-entry__icon { color: var(--accent); font-size: 28px; }
+.library-backups { width: 100%; }
+.library-backups > summary { width: fit-content; cursor: pointer; }
+.library-backups__actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 14px; }
+.library-backups p { font-size: 13px; }

@@ -55,7 +55,7 @@
 
   /* ---------- library ---------- */
   function renderLibrary() {
-    const scripts = S.list();
+    const scripts = S.list().filter(rec => rec.id !== 'cue-tutorial');
     view.replaceChildren(el(`
       <div class="toolbar">
         <h1>Scripts</h1>
@@ -72,10 +72,12 @@
       <p class="muted search-status" id="search-status" role="status"></p>
     </div>`);
     view.appendChild(tools);
-    // Occasional actions sit quietly below the scripts so search and the list come first.
-    const foot = el(`<div class="library-foot"><button class="btn btn--small" id="tutorial">Tutorial</button><button class="btn btn--small" id="backup">Back up scripts</button><label class="btn btn--small">Import backup<input type="file" id="restore" accept=".json,application/json" hidden></label></div>`);
-    foot.querySelector('#tutorial').onclick = () => { const rec = S.addTutorial(CueTutorial.text); location.hash = '#/read/' + rec.id; };
-    foot.querySelector('#backup').disabled = !scripts.length;
+    const practice = el('<button class="tutorial-entry" id="tutorial" aria-label="Tutorial"><span class="tutorial-entry__icon" aria-hidden="true">▷</span><span><strong>Tutorial</strong><small>Warm up with Hamlet and try CUE’s controls</small></span><span aria-hidden="true">→</span></button>');
+    practice.onclick = () => { const rec = S.addTutorial(CueTutorial.text); location.hash = '#/read/' + rec.id; };
+    view.appendChild(practice);
+    // Backup actions share a separate, quiet menu below the library.
+    const foot = el(`<div class="library-foot"><details class="library-backups"><summary class="btn btn--small">Backups</summary><div class="library-backups__actions"><button class="btn btn--small" id="backup">Back up scripts</button><label class="btn btn--small">Import backup<input type="file" id="restore" accept=".json,application/json" hidden></label></div><p class="muted">Save or restore a copy of your scripts on this device.</p></details></div>`);
+    foot.querySelector('#backup').disabled = !S.list().length;
     foot.querySelector('#backup').onclick = () => download(B.encode(S.list()), 'cue-scripts.json', 'application/json');
     foot.querySelector('#restore').onchange = async e => {
       const file = e.target.files[0]; if (!file) return;
@@ -98,7 +100,7 @@
       tools.querySelector('#search-status').textContent = query ? (found ? plural(found, 'script') + ' found' : 'No matching scripts') : '';
     };
     if (!scripts.length) {
-      view.appendChild(el(`<div class="empty-state"><h2>No scripts yet</h2><p>Tap New script, then paste or open a script file.</p></div>`));
+      view.appendChild(el(`<div class="empty-state"><h2>Your scripts go here</h2><p>Choose New script to write, paste or open a file. Tutorial is always available above.</p></div>`));
       view.appendChild(foot);
       return;
     }
@@ -363,7 +365,7 @@
     });
   }
 
-  S.ensureTutorial(CueTutorial.text, CueTutorial.legacyText);
+  S.ensureTutorial(CueTutorial.text, CueTutorial.legacyTexts);
   route();
   showVersion();
   registerServiceWorker();

@@ -37,7 +37,8 @@
     ensureTutorial(text, previousText) {
       const existing = this.get('cue-tutorial');
       // Upgrade only the exact bundled sample; never replace a person's edits or deletion.
-      if (existing && previousText && existing.text === previousText) {
+      const previous = Array.isArray(previousText) ? previousText : [previousText];
+      if (existing && previous.includes(existing.text)) {
         this.save({ id: existing.id, text, adj: 0 });
       }
       if (this.settings().tutorialAdded) return;

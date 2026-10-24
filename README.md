@@ -131,20 +131,17 @@ changed or reset in their new order. Reordering does not rewrite your words.
 
 ## Built-in tutorial
 
-A removable **CUE Tutorial — The Last Broadcast** appears once in each library.
-It is an original modern villain monologue, with short sentences, conversational
-punctuation and a little theatrical menace. It contains no movie dialogue.
-At its 150 WPM header pace, it takes roughly three to five minutes depending on
-your focus mode and punctuation settings. Six chapters and unspoken notes introduce
-CUE's controls; two timed pauses offer a chance to practise holding the room.
+The **Tutorial** button opens Hamlet's “O what a rogue and peasant slave am I!”
+from Act II, Scene II, using the public-domain
+[Project Gutenberg text](https://www.gutenberg.org/ebooks/1524). The speech's wording
+is retained; six chapter labels, unspoken CUE instructions and two timed pauses
+are added. Its 120 WPM pace is intended for a measured three-to-five-minute read.
 
-The tutorial ships inside the app and works offline. An untouched copy of the
-previous Lincoln sample upgrades automatically, starting at the new script's
-normal pace. Edited copies and other scripts stay as they are. Deleting the
-tutorial prevents automatic reappearance. The **Tutorial** library button opens
-your existing copy or adds a fresh copy if you removed it. Personal settings are
-preserved. The previous public-domain speech came from the
-[U.S. National Park Service transcript](https://www.nps.gov/linc/learn/historyculture/lincoln-second-inaugural.htm).
+Tutorial has one dedicated button and stays out of the personal script cards.
+Your tutorial edits and reading position remain saved locally, and backups include
+the saved practice copy. Untouched Lincoln or Last Broadcast samples upgrade to
+Hamlet; edited copies stay intact. The button restores Hamlet if the saved copy
+was removed. **Backups** groups library export and import separately below your scripts.
 
 Timed pauses and holds have inline markers so you can see them coming. During
 the cue, a large stationary card at the reading line shows the remaining seconds

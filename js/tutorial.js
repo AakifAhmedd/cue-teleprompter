@@ -1,4 +1,4 @@
-/* CUE tutorial: original modern practice fiction, with an exact legacy sample for safe upgrades.
+/* CUE tutorial: Shakespeare practice, with exact legacy samples for safe upgrades.
    Legacy public-domain speech: Abraham Lincoln, Second Inaugural Address, 4 March 1865.
    Source: U.S. National Park Service transcript, retrieved 24 October 2026.
    https://www.nps.gov/linc/learn/historyculture/lincoln-second-inaugural.htm
@@ -6,7 +6,7 @@
 (function (root) {
   'use strict';
   const source = 'https://www.nps.gov/linc/learn/historyculture/lincoln-second-inaugural.htm';
-  const legacyText = `---
+  const lincolnText = `---
 title: CUE Tutorial — five-minute practice
 tempo: 150
 ---
@@ -49,7 +49,7 @@ Yet, if God wills that it continue until all the wealth piled by the bondsman's 
 With malice toward none with charity for all with firmness in the right as God gives us to see the right let us strive on to finish the work we are in to bind up the nation's wounds, to care for him who shall have borne the battle and for his widow and his orphan — to do all which may achieve and cherish a just and lasting peace among ourselves and with all nations.
 `;
   // Original CUE practice fiction. Legacy text is retained only to recognize an untouched sample.
-  const text = `---
+  const legacyText = `---
 title: CUE Tutorial — The Last Broadcast
 tempo: 150
 ---
@@ -111,7 +111,94 @@ Oh, and one last thing. The lights come back on in ten seconds. Watch the old cl
 
 I repaired that, too.
 `;
-  const api = { text, legacyText, legacySource: source };
+  // Public-domain speech from Project Gutenberg eBook 1524; wording retained.
+  // CUE adds chapter labels, unspoken instructions and two timed pauses.
+  const text = `---
+title: CUE Tutorial — Hamlet
+tempo: 120
+---
+[note William Shakespeare, Hamlet, Act II, Scene II. Public-domain text. Read the speech; headings and CUE notes are unspoken.]
+
+## An actor's tears
+[note Press Play to begin. Space or the big button pauses.]
+O what a rogue and peasant slave am I!
+Is it not monstrous that this player here,
+But in a fiction, in a dream of passion,
+Could force his soul so to his own conceit
+That from her working all his visage wan’d;
+Tears in his eyes, distraction in’s aspect,
+A broken voice, and his whole function suiting
+With forms to his conceit? And all for nothing!
+For Hecuba?
+
+## What would he do?
+[note Aa changes text size, reading width, spacing and focus. Centre guide scrolls smoothly; word mode follows punctuation pauses.]
+What’s Hecuba to him, or he to Hecuba,
+That he should weep for her? What would he do,
+Had he the motive and the cue for passion
+That I have? He would drown the stage with tears
+And cleave the general ear with horrid speech;
+Make mad the guilty, and appal the free,
+Confound the ignorant, and amaze indeed,
+The very faculties of eyes and ears.
+
+## Am I a coward?
+[note Agenda jumps pause reading. Use Reorder to move chapters, or keys 1–9 to jump.]
+Yet I,
+A dull and muddy-mettled rascal, peak
+Like John-a-dreams, unpregnant of my cause,
+And can say nothing. No, not for a king
+Upon whose property and most dear life
+A damn’d defeat was made. Am I a coward?
+[pause 2]
+Who calls me villain, breaks my pate across?
+Plucks off my beard and blows it in my face?
+Tweaks me by the nose, gives me the lie i’ th’ throat
+As deep as to the lungs? Who does me this?
+
+## Anger turns inward
+[note A timed pause shows a countdown in the guide. The scroll stays still, then continues.]
+Ha! ’Swounds, I should take it: for it cannot be
+But I am pigeon-liver’d, and lack gall
+To make oppression bitter, or ere this
+I should have fatted all the region kites
+With this slave’s offal. Bloody, bawdy villain!
+Remorseless, treacherous, lecherous, kindless villain!
+Oh vengeance!
+[pause 2]
+Why, what an ass am I! This is most brave,
+That I, the son of a dear father murder’d,
+Prompted to my revenge by heaven and hell,
+Must, like a whore, unpack my heart with words
+And fall a-cursing like a very drab,
+A scullion! Fie upon’t! Foh!
+
+## A plan takes shape
+[note While paused, open Aa → Quick edit or press E. Visual edits cues as blocks; Text shows the source.]
+About, my brain! I have heard
+That guilty creatures sitting at a play,
+Have by the very cunning of the scene,
+Been struck so to the soul that presently
+They have proclaim’d their malefactions.
+For murder, though it have no tongue, will speak
+With most miraculous organ. I’ll have these players
+Play something like the murder of my father
+Before mine uncle. I’ll observe his looks;
+I’ll tent him to the quick.
+
+## The play's the thing
+[note Plus and minus adjust by 5 WPM. Back to scripts returns to the library; Tutorial opens this practice again.]
+If he but blench,
+I know my course. The spirit that I have seen
+May be the devil, and the devil hath power
+T’assume a pleasing shape, yea, and perhaps
+Out of my weakness and my melancholy,
+As he is very potent with such spirits,
+Abuses me to damn me. I’ll have grounds
+More relative than this. The play’s the thing
+Wherein I’ll catch the conscience of the King.
+`;
+  const api = { text, source: 'https://www.gutenberg.org/ebooks/1524', legacyText, legacyTexts: [legacyText, lincolnText] };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.CueTutorial = api;
 })(typeof self !== 'undefined' ? self : this);
