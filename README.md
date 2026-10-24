@@ -21,6 +21,7 @@ Versioning rules for every change are in [VERSIONING.md](VERSIONING.md).
 ```bash
 node tests/format.test.js
 node tests/store.test.js
+node tests/backup.test.js
 ```
 
 Browser regressions use Playwright as a development-only tool; the app has no
@@ -77,3 +78,17 @@ Settings offers an optional 3, 5 or 10 second countdown on first Play and Restar
 Pause cancels the countdown; ordinary pause/resume after starting is immediate.
 The reader also shows word count and active reading time, excluding countdowns,
 manual pauses and holds. Remaining time follows the script's pace and timed cues.
+
+## Local library and backups
+
+Search filters scripts instantly on this device. Each card's **More** menu offers
+**Duplicate** for recurring events, **Export text**, and Delete. Duplicates get a
+new title and start from the top while keeping the script's formatting and cues.
+
+**Back up scripts** downloads a JSON copy of the library. **Import backup** adds
+scripts from that file without overwriting existing scripts, skips identical
+script text, and validates the complete file before importing anything. Backups
+contain script text, including title/tempo headers; they do not contain delivery
+settings, reader positions or device identifiers. Imported scripts start paused
+at the top. JSON imports are limited to 10 MB. Keep these local files somewhere
+safe: scripts and backups are plain text. Nothing is uploaded to a server.

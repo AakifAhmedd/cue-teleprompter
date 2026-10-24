@@ -56,6 +56,8 @@ const { chromium } = require('playwright');
       }});
     });
     await page.goto(url);
+    // Reader frames are manual; async UI checks must poll independently of requestAnimationFrame.
+    const until = (fn, arg) => page.waitForFunction(fn, arg, { polling: 25 });
     const state = () => page.evaluate(() => window.__cueReader._state());
     const step = seconds => page.evaluate(s => window.stepReader(s), seconds);
     const open = async (text = '---\ntempo: 120\n---\none two three four') => {
@@ -116,7 +118,7 @@ const { chromium } = require('playwright');
     assert.equal(await page.evaluate(() => pendingLocks.length), 1);
     await exit();
     await page.evaluate(() => pendingLocks.shift()());
-    await page.waitForFunction(() => locksReleased === 1);
+    await until(() => locksReleased === 1);
 
     // Native keyboard activation for library cards.
     await page.locator('.card__main').first().focus();
@@ -237,6 +239,53 @@ const { chromium } = require('playwright');
       assert.equal(await page.evaluate(() => [...document.querySelectorAll('.w')].every(word => [...word.getClientRects()].every(rect => rect.left >= 0 && rect.right <= innerWidth))), true, 'large words fit ' + width);
       await page.screenshot({ path: '/private/tmp/cue-reader-' + width + '.png' });
       await exit();
+    }
+
+    // Import validates everything first, skips exact duplicates, and never overwrites records.
+    const beforeImport = await page.evaluate(() => CueStore.list().length);
+    const sourceText = '---\ntitle: Backup Round Trip\ntempo: 120\n---\n## Welcome\nLiteral <img src=x onerror=alert(1)> text.\n[hold Applause]';
+    const fixture = JSON.stringify({ format: 'cue-library', schema: 1, scripts: [{ text: sourceText }, { text: sourceText }] });
+    const upload = text => page.locator('#restore').setInputFiles({ name: 'cue-scripts.json', mimeType: 'application/json', buffer: Buffer.from(text) });
+    await upload(fixture);
+    await until(n => CueStore.list().length === n + 1, beforeImport);
+    await upload(fixture);
+    await until(() => document.getElementById('toast').textContent.includes('already'));
+    assert.equal(await page.evaluate(() => CueStore.list().length), beforeImport + 1);
+    await upload('{"format":"cue-library","schema":1,"scripts":[{"text":"Never partially import"},{"text":5}]}');
+    await until(() => document.getElementById('toast').textContent.includes('invalid'));
+    assert.equal(await page.evaluate(() => CueStore.list().length), beforeImport + 1);
+    let roundTrip = page.locator('.card').filter({ hasText: 'Backup Round Trip' });
+    await roundTrip.locator('summary').click();
+    const textDownload = await Promise.all([page.waitForEvent('download'), roundTrip.getByRole('button', { name: 'Export text' }).click()]).then(results => results[0]);
+    assert.equal(await fs.readFile(await textDownload.path(), 'utf8'), sourceText);
+    await roundTrip.getByRole('button', { name: 'Duplicate', exact: true }).click();
+    await page.waitForSelector('#text');
+    assert.match(await page.locator('#text').inputValue(), /Backup Round Trip — copy/);
+    await page.getByRole('button', { name: 'Save', exact: true }).click();
+    await page.waitForSelector('#new-script');
+    const search = page.getByRole('searchbox', { name: 'Search scripts' });
+    await search.fill('round trip');
+    assert.equal(await page.locator('.card:visible').count(), 2);
+    await search.fill('nothing-matches-this-query');
+    assert.equal(await page.locator('.card:visible').count(), 0);
+    assert.equal(await page.locator('#search-status').textContent(), 'No matching scripts');
+    await search.fill('');
+    const libraryDownload = await Promise.all([page.waitForEvent('download'), page.getByRole('button', { name: 'Back up scripts' }).click()]).then(results => results[0]);
+    const backedUp = JSON.parse(await fs.readFile(await libraryDownload.path(), 'utf8'));
+    assert.equal(backedUp.scripts.length, beforeImport + 2);
+    assert.deepEqual(Object.keys(backedUp.scripts[0]), ['text']);
+    assert.equal(await page.locator('.card img').count(), 0, 'imported markup is inert');
+    await page.screenshot({ path: '/private/tmp/cue-library-final.png' });
+    for (const width of [320, 390]) {
+      await page.setViewportSize({ width, height: 844 });
+      assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true, 'library fits phone');
+      await page.screenshot({ path: '/private/tmp/cue-library-' + width + '.png' });
+      await page.getByRole('button', { name: 'Settings', exact: true }).click();
+      await page.waitForSelector('#delivery');
+      assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true, 'settings fit phone');
+      await page.screenshot({ path: '/private/tmp/cue-settings-' + width + '.png' });
+      await page.getByRole('button', { name: '← Back', exact: true }).click();
+      await page.waitForSelector('#new-script');
     }
 
     await page.evaluate(() => { Storage.prototype.setItem = () => { throw new Error('Storage blocked'); }; });

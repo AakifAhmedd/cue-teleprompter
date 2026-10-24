@@ -49,6 +49,23 @@
       write(KEY_SCRIPTS, all);
       return rec;
     },
+    // Restore validated text in one write; keep existing scripts and reader state.
+    addMany(texts) {
+      const all = read(KEY_SCRIPTS, []);
+      const seen = new Set(all.map(rec => rec.text));
+      const ids = new Set(all.map(rec => rec.id));
+      let added = 0;
+      for (const text of texts) {
+        if (seen.has(text)) continue;
+        let id;
+        do { id = newId(); } while (ids.has(id));
+        ids.add(id); seen.add(text);
+        all.push({ id, text, pos: 0, adj: 0, updatedAt: Date.now() });
+        added++;
+      }
+      if (added) write(KEY_SCRIPTS, all);
+      return added;
+    },
     remove(id) {
       write(KEY_SCRIPTS, read(KEY_SCRIPTS, []).filter(s => s.id !== id));
     },

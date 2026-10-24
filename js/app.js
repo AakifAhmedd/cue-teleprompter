@@ -4,6 +4,7 @@
 
   const F = CueFormat;
   const S = CueStore;
+  const B = CueBackup;
   const view = document.getElementById('view');
   // The worker URL must change with the assets so every release is precached offline.
   const assetQuery = new URL(document.currentScript.src).search;
@@ -43,6 +44,14 @@
   window.addEventListener('cue:storage', updateStorageNotice);
   updateStorageNotice();
 
+  function download(text, name, type) {
+    const url = URL.createObjectURL(new Blob([text], { type }));
+    const link = document.createElement('a');
+    link.href = url; link.download = name;
+    document.body.appendChild(link); link.click(); link.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+
   /* ---------- library ---------- */
   function renderLibrary() {
     const scripts = S.list();
@@ -57,6 +66,34 @@
     view.querySelector('#settings').onclick = () => { location.hash = '#/settings'; };
     view.querySelector('#new-script').onclick = () => { location.hash = '#/new'; };
 
+    const tools = el(`<div class="library-tools">
+      <input type="search" class="search" id="script-search" aria-label="Search scripts" placeholder="Search scripts…">
+      <div class="editor-tools"><button class="btn btn--small" id="backup">Back up scripts</button><label class="btn btn--small">Import backup<input type="file" id="restore" accept=".json,application/json" hidden></label></div>
+      <p class="muted search-status" id="search-status" role="status"></p>
+    </div>`);
+    view.appendChild(tools);
+    tools.querySelector('#backup').disabled = !scripts.length;
+    tools.querySelector('#backup').onclick = () => download(B.encode(S.list()), 'cue-scripts.json', 'application/json');
+    tools.querySelector('#restore').onchange = async e => {
+      const file = e.target.files[0]; if (!file) return;
+      try {
+        if (file.size > B.MAX_BYTES) throw new Error('Backup is too large (maximum 10 MB).');
+        const texts = B.decode(await file.text());
+        const added = S.addMany(texts);
+        renderLibrary();
+        toast(added ? plural(added, 'script') + ' imported' + (S.isSessionOnly() ? ' for this session only' : '') : 'All scripts already in your library');
+      } catch (error) { toast(error.message); }
+      finally { e.target.value = ''; }
+    };
+    tools.querySelector('#script-search').oninput = e => {
+      const query = e.target.value.trim().toLocaleLowerCase();
+      let found = 0;
+      view.querySelectorAll('.card').forEach((card, i) => {
+        card.hidden = !scripts[i].text.toLocaleLowerCase().includes(query);
+        if (!card.hidden) found++;
+      });
+      tools.querySelector('#search-status').textContent = query ? (found ? plural(found, 'script') + ' found' : 'No matching scripts') : '';
+    };
     if (!scripts.length) {
       view.appendChild(el(`<div class="empty-state"><h2>No scripts yet</h2><p>Tap New script, then paste or open a script file.</p></div>`));
       return;
@@ -73,7 +110,11 @@
           </div>
           <div class="card__actions">
             <button class="btn btn--small" data-act="edit">Edit</button>
-            <button class="btn btn--small btn--danger" data-act="delete">Delete</button>
+            <details class="card__menu"><summary class="btn btn--small">More</summary><div class="card__menu-items">
+              <button class="btn btn--small" data-act="duplicate">Duplicate</button>
+              <button class="btn btn--small" data-act="export">Export text</button>
+              <button class="btn btn--small btn--danger" data-act="delete">Delete</button>
+            </div></details>
           </div>
         </article>`);
       card.querySelector('.card__main').onclick = () => { location.hash = '#/read/' + rec.id; };
@@ -81,6 +122,15 @@
         if (e.code === 'Enter' || e.code === 'Space') { e.preventDefault(); if (!e.repeat) location.hash = '#/read/' + rec.id; }
       };
       card.querySelector('[data-act="edit"]').onclick = () => { location.hash = '#/edit/' + rec.id; };
+      card.querySelector('[data-act="duplicate"]').onclick = () => {
+        const copy = S.save({ text: B.copyText(rec.text, sc.title) });
+        location.hash = '#/edit/' + copy.id;
+        toast(S.isSessionOnly() ? 'Copy created for this session only' : 'Copy created');
+      };
+      card.querySelector('[data-act="export"]').onclick = () => {
+        const name = sc.title.replace(/[\\/:*?"<>|\r\n]/g, '_').slice(0, 80) || 'script';
+        download(rec.text, name + '.txt', 'text/plain');
+      };
       card.querySelector('[data-act="delete"]').onclick = () => {
         if (confirm('Delete "' + sc.title + '"?')) { S.remove(rec.id); renderLibrary(); }
       };
@@ -222,9 +272,13 @@
     view.querySelector('#file').onchange = async (e) => {
       const file = e.target.files[0];
       if (!file) return;
-      ta.value = await file.text();
-      refresh();
-      e.target.value = '';
+      try {
+        if (file.size > B.MAX_BYTES) throw new Error('Text file is too large (maximum 10 MB).');
+        const text = await file.text();
+        if (!ta.isConnected) return;
+        ta.value = text; refresh();
+      } catch (_) { toast('Could not open that text file. Try a smaller .txt or .md file.'); }
+      finally { e.target.value = ''; }
     };
     if (!rec) ta.focus({ preventScroll: true });
   }

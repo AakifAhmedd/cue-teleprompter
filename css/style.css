@@ -350,3 +350,12 @@ body.is-reading .storage-warning { position: fixed; z-index: 20; top: calc(64px 
 .icon-btn:disabled { opacity: 0.35; cursor: default; }
 .reader__top { gap: 8px; }
 .reader__left { max-width: 32vw; overflow: hidden; text-overflow: ellipsis; }
+
+.library-tools { margin-bottom: 16px; }
+.library-tools .editor-tools { margin: 12px 0 0; flex-wrap: wrap; }
+.search-status { font-size: 14px; margin: 8px 0 0; }
+.card__menu summary { list-style: none; text-align: center; }
+.card__menu summary::-webkit-details-marker { display: none; }
+.card__menu-items { display: flex; flex-direction: column; gap: 6px; margin-top: 6px; }
+.card__actions { flex-shrink: 0; }
+.toast { max-width: calc(100% - 24px); width: max-content; text-align: center; z-index: 30; }
