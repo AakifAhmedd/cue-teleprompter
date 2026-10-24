@@ -87,7 +87,7 @@
         '<label class="sheet__focus">Reading focus<select aria-label="Reading focus" data-el="focus"><option value="word">Word by word</option><option value="line">Centre guide</option></select></label>' +
         '<button class="btn btn--small sheet__edit" data-act="edit">Quick edit</button>' +
       '</div>' +
-      '<dialog class="quick-editor" aria-labelledby="quick-edit-title"><div class="toolbar"><h2 id="quick-edit-title">Quick edit</h2><button class="btn btn--small" data-act="discard-edit">Discard changes</button><button class="btn btn--primary btn--small" data-act="save-edit">Save quick edits</button></div><p class="muted">Save to update this script on your device. Reading stays paused at your place, or at the start of text you changed.</p><textarea class="editor" data-el="editText" aria-label="Edit script text" spellcheck="false" autocapitalize="off" autocomplete="off"></textarea><p class="muted" data-el="editSummary" role="status"></p></dialog>' +
+      '<dialog class="quick-editor" aria-labelledby="quick-edit-title"><div class="toolbar"><h2 id="quick-edit-title">Quick edit</h2><button class="btn btn--small" data-act="discard-edit">Discard changes</button><button class="btn btn--primary btn--small" data-act="save-edit">Save quick edits</button></div><p class="muted">Save updates this script. Reading stays paused at your place, or the passage you changed.</p><textarea class="editor" data-el="editText" aria-label="Edit script text" spellcheck="false" autocapitalize="off" autocomplete="off"></textarea><p class="muted" data-el="editSummary" role="status"></p></dialog>' +
       '<dialog class="agenda" aria-labelledby="agenda-title"><div class="toolbar"><h2 id="agenda-title">Agenda</h2><button class="btn btn--small" data-act="reorder" aria-pressed="false">Reorder</button><button class="btn btn--small" data-act="close-agenda">Close</button></div>' +
         '<p class="muted" data-el="agendaHelp">Choose a section, then press Play. Shortcuts: 1–9, Page Up / Page Down.</p>' +
         '<div class="agenda-list">' + sectionList + '</div></dialog>' +
@@ -113,6 +113,7 @@
     const agenda = root_.querySelector('.agenda');
     const quickEditor = root_.querySelector('.quick-editor');
     const editText = root_.querySelector('[data-el="editText"]');
+    const editComposer = root.CueEditor.mount(editText);
     const editButton = root_.querySelector('[data-act="edit"]');
     const editSave = root_.querySelector('[data-act="save-edit"]');
     const countdownEl = root_.querySelector('[data-el="countdown"]');
@@ -296,6 +297,7 @@
     }
 
     function refreshEdit() {
+      editComposer.refresh();
       const edited = F.parse(editText.value, pacing);
       editSave.disabled = edited.words === 0;
       root_.querySelector('[data-el="editSummary"]').textContent = edited.words + ' words' + (edited.warnings.length ? ' · ' + edited.warnings.join('; ') : '');
@@ -308,19 +310,10 @@
       let chapter = -1;
       sections.forEach((section, k) => { if (section.i <= pos.i) chapter = k; });
       const offset = chapter >= 0 ? parts.prefix.length + parts.sections.slice(0, chapter).join('').length : 0;
-      editText.focus(); editText.setSelectionRange(offset, offset);
-      // Textareas do not consistently scroll a programmatic caret into view.
-      const mirror = document.createElement('div'), caret = document.createElement('span');
-      mirror.style.cssText = 'position:absolute;visibility:hidden;white-space:pre-wrap;overflow-wrap:break-word;';
-      const style = getComputedStyle(editText);
-      for (const property of ['font', 'lineHeight', 'letterSpacing', 'padding', 'boxSizing', 'tabSize']) mirror.style[property] = style[property];
-      mirror.style.width = editText.clientWidth + 'px';
-      mirror.textContent = editText.value.slice(0, offset); caret.textContent = '\u200b';
-      mirror.appendChild(caret); quickEditor.appendChild(mirror);
-      editText.scrollTop = Math.max(0, caret.offsetTop - editText.clientHeight / 3);
-      mirror.remove();
+      editComposer.focusAt(offset);
     }
     function saveQuickEdit() {
+      if (!editComposer.validate()) return;
       const edited = F.parse(editText.value, pacing);
       if (!edited.words || !onReorder) return;
       if (editText.value === rec.text) { quickEditor.close(); return; }
@@ -721,6 +714,7 @@
         if (destroyed) return;
         destroyed = true;
         quickEditor.close();
+        editComposer.destroy();
         agenda.close();
         playing = false;
         savePos();

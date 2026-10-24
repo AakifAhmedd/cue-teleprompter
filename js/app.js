@@ -242,7 +242,7 @@
             <input type="file" id="file" accept=".txt,.md,text/plain,text/markdown" hidden>
           </label>
         </div>
-        <textarea id="text" class="editor" spellcheck="false" autocapitalize="off" autocomplete="off"></textarea>
+        <textarea id="text" aria-label="Script text" class="editor" spellcheck="false" autocapitalize="off" autocomplete="off"></textarea>
         <div class="summary" id="summary"></div>
       </div>`));
 
@@ -251,8 +251,10 @@
     const saveBtn = view.querySelector('#save');
     ta.placeholder = PLACEHOLDER;
     ta.value = original;
+    const composer = CueEditor.mount(ta);
 
     function refresh() {
+      composer.refresh();
       const sc = F.parse(ta.value, S.settings().pacing);
       const secs = F.estimateSeconds(sc.tokens, sc.tempo, playbackPacing());
       let html = ta.value.trim()
@@ -271,6 +273,10 @@
       location.hash = '#/';
     };
     saveBtn.onclick = () => {
+      if (!composer.validate()) return;
+      if (rec && (!S.get(rec.id) || S.get(rec.id).text !== original)) {
+        toast('The script changed in another tab. Copy your draft before reopening it.'); return;
+      }
       S.save({ id: rec ? rec.id : undefined, text: ta.value });
       toast(S.isSessionOnly() ? 'Saved only for this session' : 'Saved');
       location.hash = '#/';
@@ -294,7 +300,7 @@
       } catch (_) { toast('Could not open that text file. Try a smaller .txt or .md file.'); }
       finally { e.target.value = ''; }
     };
-    if (!rec) ta.focus({ preventScroll: true });
+    if (!rec) composer.focusAt(0);
   }
 
   /* ---------- router ---------- */

@@ -471,3 +471,57 @@ body.is-reading .storage-warning { position: fixed; z-index: 20; top: calc(64px 
 .quick-editor h2 { margin: 0; font-size: 20px; }
 .quick-editor p { font-size: 13px; overflow-wrap: anywhere; }
 .quick-editor .editor { height: min(52dvh, 480px); min-height: 160px; }
+
+/* Script composer: visual cues remain ordinary, exportable CUE text. */
+.script-composer { min-width: 0; }
+.composer__modes, .composer__palette { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0; }
+.composer__modes [aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.composer__modes [data-undo] { margin-left: auto; }
+.composer__palette { position: sticky; top: 8px; z-index: 4; backdrop-filter: blur(16px); padding: 12px; border: 1px solid var(--line); border-radius: var(--radius-s); background: var(--glass-strong); }
+.composer__help, .composer__empty { color: var(--muted); font-size: 13px; line-height: 1.5; }
+.composer__blocks { min-width: 0; }
+.composer__block { padding: 14px; border: 1px solid var(--line); border-radius: var(--radius-s); background: rgba(255,255,255,.025); min-width: 0; }
+.composer__block:focus-within { border-color: var(--accent); }
+.composer__block--note, .composer__block--pause, .composer__block--hold, .composer__block--tempo { border-left: 3px solid var(--accent); background: rgba(201,165,92,.045); }
+.composer__block-head { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-bottom: 12px; }
+.composer__block-head strong { margin-right: auto; font-size: 13px; color: var(--accent); }
+.composer__handle { cursor: grab; touch-action: pan-y; font-size: 19px; }
+.composer__block label { display: block; color: var(--muted); font-size: 13px; margin: 10px 0 0; }
+.composer__block input:not([type="checkbox"]), .composer__block textarea { display: block; width: 100%; max-width: 100%; min-width: 0; margin-top: 6px; padding: 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--text); font: 400 16px/1.6 var(--font-body); color-scheme: dark; }
+.composer__block textarea { resize: vertical; min-height: 88px; }
+.composer__block input[type="number"] { max-width: 220px; }
+.composer__reset { display: flex !important; align-items: center; gap: 8px; }
+.composer__reset input { width: 20px; height: 20px; accent-color: var(--accent); }
+.composer__gap { display: block; width: 100%; height: 26px; border: 0; background: none; color: var(--muted); cursor: pointer; }
+.composer__gap:hover, .composer__gap.is-drop { background: rgba(201,165,92,.18); color: var(--accent); outline: 1px dashed var(--accent); }
+.quick-editor .composer__blocks { max-height: 48dvh; overflow-y: auto; padding: 3px; }
+.quick-editor .composer__help { margin: 6px 0; }
+.quick-editor .composer__palette { padding: 8px; }
+@media (max-width: 400px) {
+  .composer__block { padding: 10px; }
+  .composer__block-head { gap: 4px; }
+  .composer__block-head .btn { padding: 6px 8px; }
+  .composer__palette { gap: 6px; }
+}
+/* Keep quick-edit actions visible while the block list scrolls. */
+.quick-editor[open] { display: flex; flex-direction: column; }
+.quick-editor > .toolbar, .quick-editor > p { flex-shrink: 0; }
+.quick-editor .script-composer { display: flex; flex-direction: column; min-height: 0; flex: 1; }
+.quick-editor .composer__modes { flex-shrink: 0; margin-block: 6px; }
+.quick-editor .composer__visual { display: flex; flex-direction: column; min-height: 0; flex: 1; }
+.quick-editor .composer__palette { flex-shrink: 0; position: static; margin-block: 6px; }
+.quick-editor .composer__help { flex-shrink: 0; }
+.quick-editor .composer__blocks { flex: 1; min-height: 80px; }
+.quick-editor .editor { flex: 1; min-height: 100px; }
+@media (max-width: 500px) {
+  .quick-editor .composer__help { display: none; }
+  .quick-editor .composer__palette { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 5px; padding: 6px; }
+  .quick-editor .composer__palette .btn { font-size: 12px; padding: 7px 4px; }
+  .quick-editor .toolbar { gap: 6px; }
+  .quick-editor .toolbar .btn { font-size: 12px; padding: 7px 9px; }
+}
+@media (max-height: 600px) {
+  .quick-editor { max-height: 96dvh; padding: 10px; }
+  .quick-editor > p:not([role="status"]), .quick-editor .composer__help { display: none; }
+  .quick-editor .composer__palette { margin-block: 3px; padding: 4px; }
+}

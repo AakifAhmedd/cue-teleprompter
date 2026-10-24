@@ -23,6 +23,7 @@ node tests/format.test.js
 node tests/store.test.js
 node tests/backup.test.js
 node tests/tutorial.test.js
+node tests/editor.test.js
 ```
 
 Browser regressions use Playwright as a development-only tool; the app has no
@@ -168,3 +169,25 @@ keeps reading paused, preserving your place in unchanged text or returning to
 the start of the passage you changed. **Discard changes** leaves the script
 untouched. Quick editing is disabled during playback. Empty scripts cannot be
 saved, and edits from another tab are not overwritten silently.
+
+## Visual and text editing
+
+Both the library editor and paused Quick edit open in **Visual** view. Speech,
+sections, notes, pauses, holds and tempo changes appear as editable blocks.
+Choose a block and use **+ Note**, **+ Pause** or another palette button to add
+below it. On a computer, drag a palette item to a **+** gap between blocks, then
+fill in its text or duration. Pause seconds use a number control with up/down
+steps and accept decimals. **Title & pace** edits the script header; leave base
+tempo empty to use your saved delivery default.
+
+Drag a block's dotted handle to move it, or use its Up/Down buttons (arrow keys
+also work on the handle). **Remove** deletes a block from the draft; **Undo** can
+restore it or reverse a visual edit. On phones, tapping palette items and the
+move arrows provides the same controls without dragging.
+
+**Text** shows the ordinary CUE source for pasting or precise edits. Switching
+views alone preserves the exact source, including header fields and unsupported
+lines. Existing files and backups keep the same format. Changes remain drafts
+until Save; paused Quick edit also offers Discard. Invalid visual cue values
+must be corrected before saving. Scripts changed in another tab are not silently
+overwritten by either editor.
