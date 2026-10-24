@@ -36,7 +36,8 @@
   }
 
   function open(host, rec, onExit) {
-    const sc = F.parse(rec.text);
+    const pacing = F.pacing(S.settings().pacing);
+    const sc = F.parse(rec.text, pacing);
     const tokens = sc.tokens;
     const n = tokens.length;
     const base = sc.tempo;
@@ -98,7 +99,7 @@
     function buildTimeline() {
       let t = 0;
       for (let i = 0; i < n; i++) {
-        dur[i] = F.tokenSeconds(tokens[i], wpmAt(i));
+        dur[i] = F.tokenSeconds(tokens[i], wpmAt(i), pacing);
         T[i] = t;
         t += dur[i];
       }

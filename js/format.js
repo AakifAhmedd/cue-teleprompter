@@ -15,13 +15,10 @@
 (function (root) {
   'use strict';
 
-  const DEFAULT_TEMPO = 130;
+  const DEFAULT_TEMPO = 140;
   const MIN_TEMPO = 60;
   const MAX_TEMPO = 300;
 
-  // Extra "beats" of silence after a word, in units of one word.
-  const BEAT_COMMA = 0.25;
-  const BEAT_SENTENCE = 0.5;
   const BEAT_BREAK = 1;      // paragraph break
   const BEAT_HEADING = 1;    // section label
 
@@ -29,6 +26,17 @@
 
   function clampTempo(n) {
     return Math.min(MAX_TEMPO, Math.max(MIN_TEMPO, Math.round(n)));
+  }
+
+  function pacing(value = {}) {
+    if (!value || typeof value !== 'object') value = {};
+    const bounded = (n, fallback, max) => typeof n === 'number' && Number.isFinite(n) ? Math.min(max, Math.max(0, n)) : fallback;
+    return {
+      defaultTempo: typeof value.defaultTempo === 'number' && Number.isFinite(value.defaultTempo) ? clampTempo(value.defaultTempo) : DEFAULT_TEMPO,
+      punctuation: value.punctuation !== false,
+      commaPause: bounded(value.commaPause, 0.25, 2),
+      sentencePause: bounded(value.sentencePause, 0.5, 5)
+    };
   }
 
   function splitFrontMatter(text) {
@@ -61,7 +69,8 @@
     return 0;
   }
 
-  function parse(text) {
+  function parse(text, options) {
+    const defaults = pacing(options);
     const { meta, body, warnings } = splitFrontMatter(String(text || ''));
     const tokens = [];
     let inEm = false;
@@ -94,12 +103,12 @@
     }
     while (tokens.length && tokens[tokens.length - 1].t === 'br') tokens.pop();
 
-    let tempo = DEFAULT_TEMPO;
+    let tempo = defaults.defaultTempo;
     let tempoGiven = false;
     if (meta.tempo !== undefined) {
       const n = Number(meta.tempo);
       if (Number.isFinite(n) && n >= MIN_TEMPO && n <= MAX_TEMPO) { tempo = Math.round(n); tempoGiven = true; }
-      else warnings.push('tempo must be a number from ' + MIN_TEMPO + ' to ' + MAX_TEMPO + ' (using ' + DEFAULT_TEMPO + ')');
+      else warnings.push('tempo must be a number from ' + MIN_TEMPO + ' to ' + MAX_TEMPO + ' (using ' + defaults.defaultTempo + ')');
     }
 
     const words = tokens.reduce((n, t) => n + (t.t === 'w' ? 1 : 0), 0);
@@ -117,7 +126,7 @@
 
   // Duration of one token in "beats" (one beat = one word at the current tempo).
   function beats(tok) {
-    if (tok.t === 'w') return 1 + (tok.p === 2 ? BEAT_SENTENCE : tok.p === 1 ? BEAT_COMMA : 0);
+    if (tok.t === 'w') return 1;
     if (tok.t === 'br') return BEAT_BREAK;
     if (tok.t === 'h') return BEAT_HEADING;
     return 0;
@@ -136,13 +145,15 @@
     return out;
   }
 
-  function tokenSeconds(tok, wpm) {
-    return beats(tok) * 60 / wpm;
+  function tokenSeconds(tok, wpm, options) {
+    const defaults = pacing(options);
+    const pause = tok.t === 'w' && defaults.punctuation ? (tok.p === 2 ? defaults.sentencePause : tok.p === 1 ? defaults.commaPause : 0) : 0;
+    return beats(tok) * 60 / wpm + pause;
   }
 
-  function estimateSeconds(tokens, wpm) {
+  function estimateSeconds(tokens, wpm, options) {
     let total = 0;
-    for (const tok of tokens) total += tokenSeconds(tok, wpm);
+    for (const tok of tokens) total += tokenSeconds(tok, wpm, options);
     return total;
   }
 
@@ -153,7 +164,7 @@
     return m + ':' + String(s).padStart(2, '0');
   }
 
-  const api = { DEFAULT_TEMPO, MIN_TEMPO, MAX_TEMPO, clampTempo, parse, beats, sentenceStarts, tokenSeconds, estimateSeconds, formatDuration };
+  const api = { DEFAULT_TEMPO, MIN_TEMPO, MAX_TEMPO, clampTempo, pacing, parse, beats, sentenceStarts, tokenSeconds, estimateSeconds, formatDuration };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.CueFormat = api;
 })(typeof self !== 'undefined' ? self : this);

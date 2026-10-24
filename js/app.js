@@ -49,8 +49,10 @@
     view.replaceChildren(el(`
       <div class="toolbar">
         <h1>Scripts</h1>
+        <button class="btn btn--small" id="settings">Settings</button>
         <button class="btn btn--primary" id="new-script">New script</button>
       </div>`));
+    view.querySelector('#settings').onclick = () => { location.hash = '#/settings'; };
     view.querySelector('#new-script').onclick = () => { location.hash = '#/new'; };
 
     if (!scripts.length) {
@@ -59,8 +61,8 @@
     }
     const list = el('<div class="card-list"></div>');
     for (const rec of scripts) {
-      const sc = F.parse(rec.text);
-      const secs = F.estimateSeconds(sc.tokens, sc.tempo);
+      const sc = F.parse(rec.text, S.settings().pacing);
+      const secs = F.estimateSeconds(sc.tokens, sc.tempo, S.settings().pacing);
       const card = el(`
         <article class="card" data-id="${esc(rec.id)}">
           <div class="card__main" role="button" tabindex="0">
@@ -83,6 +85,50 @@
       list.appendChild(card);
     }
     view.appendChild(list);
+  }
+
+  /* ---------- saved delivery defaults ---------- */
+  function renderSettings() {
+    const saved = F.pacing(S.settings().pacing);
+    const presets = {
+      standard: { defaultTempo: 140, commaPause: 0.25, sentencePause: 0.5 },
+      formal: { defaultTempo: 110, commaPause: 0.3, sentencePause: 0.7 },
+      lively: { defaultTempo: 170, commaPause: 0.15, sentencePause: 0.35 }
+    };
+    view.replaceChildren(el(`
+      <form id="delivery" class="settings">
+        <div class="toolbar"><button type="button" class="btn btn--small" id="back">← Back</button><h1>Delivery defaults</h1><button class="btn btn--primary btn--small">Save</button></div>
+        <p class="muted">Used for scripts without a tempo header. Script tempo headers take priority. Changes apply the next time you open a script.</p>
+        <label>Starting profile<select id="profile"><option value="custom">Your settings</option><option value="standard">Standard</option><option value="formal">Formal / introductions</option><option value="lively">Lively / hosting</option></select></label>
+        <label>Default pace (WPM)<input id="default-tempo" type="number" min="60" max="300" step="1" required></label>
+        <label class="check-row"><input id="punctuation" type="checkbox"> Pause at punctuation</label>
+        <label>Comma pause (seconds)<input id="comma-pause" type="number" min="0" max="2" step="0.05" required></label>
+        <label>Full stop / sentence pause (seconds)<input id="sentence-pause" type="number" min="0" max="5" step="0.05" required></label>
+        <p class="muted">Pauses are extra time after each word and stay the same when WPM changes. Sentence pauses also apply to ! and ?. Blank lines and headings keep a brief breather.</p>
+      </form>`));
+    const form = view.querySelector('#delivery');
+    const fill = value => {
+      form.querySelector('#default-tempo').value = value.defaultTempo;
+      form.querySelector('#comma-pause').value = value.commaPause;
+      form.querySelector('#sentence-pause').value = value.sentencePause;
+    };
+    fill(saved);
+    form.querySelector('#punctuation').checked = saved.punctuation;
+    form.querySelector('#profile').onchange = e => {
+      if (presets[e.target.value]) { fill(presets[e.target.value]); form.querySelector('#punctuation').checked = true; }
+    };
+    form.querySelector('#back').onclick = () => { location.hash = '#/'; };
+    form.onsubmit = e => {
+      e.preventDefault();
+      S.setSettings({ pacing: F.pacing({
+        defaultTempo: Number(form.querySelector('#default-tempo').value),
+        punctuation: form.querySelector('#punctuation').checked,
+        commaPause: Number(form.querySelector('#comma-pause').value),
+        sentencePause: Number(form.querySelector('#sentence-pause').value)
+      }) });
+      toast(S.isSessionOnly() ? 'Defaults saved only for this session' : 'Delivery defaults saved');
+      location.hash = '#/';
+    };
   }
 
   /* ---------- editor / import ---------- */
@@ -117,8 +163,8 @@
     ta.value = original;
 
     function refresh() {
-      const sc = F.parse(ta.value);
-      const secs = F.estimateSeconds(sc.tokens, sc.tempo);
+      const sc = F.parse(ta.value, S.settings().pacing);
+      const secs = F.estimateSeconds(sc.tokens, sc.tempo, S.settings().pacing);
       let html = ta.value.trim()
         ? `<strong>${esc(sc.title)}</strong> · ${plural(sc.words, 'word')} · ~${F.formatDuration(secs)} at ${sc.tempo} WPM`
         : '<span class="muted">Nothing here yet</span>';
@@ -165,6 +211,7 @@
     document.body.classList.remove('is-reading');
     const [name, id] = location.hash.replace(/^#\/?/, '').split('/');
     window.scrollTo(0, 0);
+    if (name === 'settings') return renderSettings();
     if (name === 'new') return renderEditor(null);
     if (name === 'edit' && id) return renderEditor(id);
     if (name === 'read' && id) {

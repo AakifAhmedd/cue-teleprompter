@@ -124,6 +124,24 @@ const { chromium } = require('playwright');
     await page.waitForSelector('.reader');
     await exit();
 
+    // User defaults persist, override plain-text fallback, and toggle punctuation off.
+    await page.getByRole('button', { name: 'Settings', exact: true }).click();
+    await page.locator('#profile').selectOption('formal');
+    assert.equal(await page.locator('#default-tempo').inputValue(), '110');
+    await page.locator('#default-tempo').fill('155');
+    await page.locator('#punctuation').uncheck();
+    await page.getByRole('button', { name: 'Save', exact: true }).click();
+    await page.waitForSelector('#new-script');
+    await page.reload();
+    await open('one, two.');
+    assert.equal((await state()).wpm, 155);
+    assert.ok(Math.abs((await state()).total - 120 / 155) < 1e-9);
+    await exit();
+    await open();
+    assert.equal((await state()).wpm, 120, 'header overrides saved defaults');
+    await exit();
+    await page.evaluate(() => CueStore.setSettings({ pacing: {} }));
+
     for (const width of [320, 390, 1440]) {
       await page.setViewportSize({ width, height: 844 });
       await open('## Welcome\nSome *important* words for a phone.');

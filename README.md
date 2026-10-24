@@ -39,3 +39,12 @@ Open the app online once before relying on offline use. Updates keep the last
 complete offline copy until the new copy is fully cached. If browser storage is
 blocked or full, a warning explains that edits will only last for the current
 session; copy your scripts before closing the tab.
+
+## Delivery defaults
+
+Open **Settings** in the library to set your default WPM and punctuation pauses.
+The starting pace is 140 WPM, with an extra 0.25 seconds at commas and 0.5 seconds
+at sentence endings. Pauses can be switched off or adjusted independently of WPM.
+Standard, Formal and Lively profiles provide starting points; saving keeps your
+adjustments on this device. A script's `tempo:` header overrides the default pace.
+Settings apply when a script is opened; live tempo buttons still move in 5 WPM steps.

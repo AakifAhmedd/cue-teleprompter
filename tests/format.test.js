@@ -54,4 +54,15 @@ assert.strictEqual(s.tokens[1].s, 'Hello');
 assert.strictEqual(s.tokens[4].s, 'Welcome!');
 assert.strictEqual(s.tokens[6].s, 'Second');
 
+// Defaults and punctuation are seconds, independent of words per minute.
+assert.strictEqual(F.parse('Hello').tempo, 140);
+assert.strictEqual(F.parse('Hello', { defaultTempo: 155 }).tempo, 155);
+assert.strictEqual(F.parse('---\ntempo: 120\n---\nHello', { defaultTempo: 155 }).tempo, 120);
+assert.strictEqual(F.tokenSeconds({ t: 'w', p: 2 }, 120), 1);
+assert.strictEqual(F.tokenSeconds({ t: 'w', p: 2 }, 240), 0.75);
+assert.strictEqual(F.tokenSeconds({ t: 'w', p: 1 }, 120), 0.75);
+assert.strictEqual(F.tokenSeconds({ t: 'w', p: 2 }, 120, { punctuation: false }), 0.5);
+assert.strictEqual(F.tokenSeconds({ t: 'w', p: 2 }, 120, { sentencePause: 1.2 }), 1.7);
+assert.strictEqual(F.pacing(null).defaultTempo, F.DEFAULT_TEMPO);
+assert.strictEqual(F.pacing({ defaultTempo: NaN, commaPause: Infinity }).commaPause, 0.25);
 console.log('format tests passed');
