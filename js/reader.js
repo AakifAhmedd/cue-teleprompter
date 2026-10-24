@@ -15,8 +15,17 @@
     play: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5v13a1 1 0 0 0 1.5.86l10.5-6.5a1 1 0 0 0 0-1.72L9.5 4.64A1 1 0 0 0 8 5.5z" fill="currentColor"/></svg>',
     pause: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="4.5" width="4.2" height="15" rx="1.3" fill="currentColor"/><rect x="13.8" y="4.5" width="4.2" height="15" rx="1.3" fill="currentColor"/></svg>',
     restart: '<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12a8 8 0 1 0 2.6-5.9"/><path d="M4 4v4.5h4.5"/></svg>',
-    back: '<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg>'
+    back: '<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg>',
+    prev: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="5" width="2.6" height="14" rx="1.1" fill="currentColor"/><path d="M19 6.2v11.6a.9.9 0 0 1-1.4.75l-8.6-5.8a.9.9 0 0 1 0-1.5l8.6-5.8A.9.9 0 0 1 19 6.2z" fill="currentColor"/></svg>',
+    next: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="16.4" y="5" width="2.6" height="14" rx="1.1" fill="currentColor"/><path d="M5 6.2v11.6a.9.9 0 0 0 1.4.75l8.6-5.8a.9.9 0 0 0 0-1.5L6.4 5.45A.9.9 0 0 0 5 6.2z" fill="currentColor"/></svg>',
+    minus: '<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M6 12h12"/></svg>',
+    plus: '<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M6 12h12M12 6v12"/></svg>'
   };
+
+  const TEMPO_STEP = 5;         // WPM per press of slower / faster
+  const SKIP_BACK_GRACE = 1.5;  // seconds into a sentence before "previous" restarts it instead of going back
+  const SIZE_MIN = 24;
+  const SIZE_MAX = 96;
 
   const MARKER = 0.38;          // reading line sits this far down the screen
   const IDLE_MS = 3000;         // dim the top bar after this long while playing
@@ -31,6 +40,9 @@
     const tokens = sc.tokens;
     const n = tokens.length;
     const base = sc.tempo;
+    const starts = F.sentenceStarts(tokens);
+    let adj = Number.isFinite(rec.adj) ? rec.adj : 0;   // live +/- offset on top of the script tempo
+    let wpm = F.clampTempo(base + adj);
 
     /* ---------- DOM ---------- */
     const root_ = document.createElement('div');
@@ -47,10 +59,21 @@
         '<button class="icon-btn" data-act="exit" aria-label="Back to scripts">' + ICON.back + '</button>' +
         '<div class="reader__title">' + esc(sc.title) + '</div>' +
         '<div class="reader__left mono" data-el="left"></div>' +
+        '<button class="icon-btn icon-btn--text" data-act="size" aria-label="Text size">Aa</button>' +
+      '</div>' +
+      '<div class="sheet" data-el="sheet" hidden>' +
+        '<label class="sheet__row"><span>Text size</span><span class="mono" data-el="sizeVal"></span></label>' +
+        '<input type="range" min="' + SIZE_MIN + '" max="' + SIZE_MAX + '" step="2" data-el="size">' +
       '</div>' +
       '<div class="reader__bar">' +
         '<div class="reader__tempo mono" data-el="tempo"></div>' +
-        '<button class="play-btn" data-act="toggle" aria-label="Play">' + ICON.play + '</button>' +
+        '<div class="reader__ctl">' +
+          '<button class="ctl-btn" data-act="prev" aria-label="Previous sentence">' + ICON.prev + '</button>' +
+          '<button class="ctl-btn" data-act="slower" aria-label="Slower">' + ICON.minus + '</button>' +
+          '<button class="play-btn" data-act="toggle" aria-label="Play">' + ICON.play + '</button>' +
+          '<button class="ctl-btn" data-act="faster" aria-label="Faster">' + ICON.plus + '</button>' +
+          '<button class="ctl-btn" data-act="next" aria-label="Next sentence">' + ICON.next + '</button>' +
+        '</div>' +
       '</div>';
     host.replaceChildren(root_);
 
@@ -59,6 +82,9 @@
     const playBtn = root_.querySelector('[data-act="toggle"]');
     const leftEl = root_.querySelector('[data-el="left"]');
     const tempoEl = root_.querySelector('[data-el="tempo"]');
+    const sheet = root_.querySelector('[data-el="sheet"]');
+    const sizeInput = root_.querySelector('[data-el="size"]');
+    const sizeVal = root_.querySelector('[data-el="sizeVal"]');
     const els = new Array(n);
     text.querySelectorAll('[data-i]').forEach(e => { els[+e.dataset.i] = e; });
 
@@ -67,7 +93,7 @@
     let T = new Float64Array(n + 1);   // start time of each token; T[n] = total
     let total = 0;
 
-    function wpmAt(_i) { return base; }
+    function wpmAt(_i) { return wpm; }
 
     function buildTimeline() {
       let t = 0;
@@ -159,6 +185,39 @@
         els[i].classList.toggle('is-now', i === pos.i);
       }
       shownI = pos.i;
+    }
+
+    function updateTempo() {
+      tempoEl.textContent = wpm + ' WPM' + (adj ? ' (' + (adj > 0 ? '+' : '−') + Math.abs(adj) + ')' : '');
+    }
+
+    function changeTempo(delta) {
+      const next = F.clampTempo(base + adj + delta);
+      if (next === wpm) return;
+      adj = next - base;
+      wpm = next;
+      buildTimeline();            // position is index-based, so it carries over untouched
+      updateTempo();
+      shownLeft = '';
+      render();
+      S.save({ id: rec.id, adj }, false);
+      wake();
+    }
+
+    function skipSentence(dir) {
+      if (!starts.length) return;
+      let cur = 0;
+      for (let k = 0; k < starts.length; k++) if (starts[k] <= pos.i) cur = k;
+      let target;
+      if (dir > 0) target = cur + 1 < starts.length ? starts[cur + 1] : null;
+      else target = (timeNow() - T[starts[cur]] > SKIP_BACK_GRACE || cur === 0) ? starts[cur] : starts[cur - 1];
+      if (target === null) return;
+      pos = { i: target, f: 0 };
+      ended = false;
+      setPlayIcon();
+      render();
+      savePos();
+      wake();
     }
 
     function updateReadouts() {
@@ -276,27 +335,67 @@
     root_.addEventListener('click', (e) => {
       const btn = e.target.closest('[data-act]');
       if (!btn) return;
-      if (btn.dataset.act === 'toggle') toggle();
-      else if (btn.dataset.act === 'exit') exit();
+      const act = btn.dataset.act;
+      if (act === 'toggle') toggle();
+      else if (act === 'exit') exit();
+      else if (act === 'faster') changeTempo(TEMPO_STEP);
+      else if (act === 'slower') changeTempo(-TEMPO_STEP);
+      else if (act === 'next') skipSentence(1);
+      else if (act === 'prev') skipSentence(-1);
+      else if (act === 'size') sheet.hidden = !sheet.hidden;
     });
     function onKey(e) {
       if (e.code === 'Space') { e.preventDefault(); toggle(); }
       else if (e.code === 'Escape') exit();
+      else if (e.code === 'ArrowUp') { e.preventDefault(); changeTempo(TEMPO_STEP); }
+      else if (e.code === 'ArrowDown') { e.preventDefault(); changeTempo(-TEMPO_STEP); }
+      else if (e.code === 'ArrowRight') skipSentence(1);
+      else if (e.code === 'ArrowLeft') skipSentence(-1);
     }
     document.addEventListener('keydown', onKey);
-    function onVisibility() { if (document.hidden && playing) pause(); }
+    function onVisibility() {
+      if (document.hidden) { if (playing) pause(); }
+      else holdScreen();
+    }
     document.addEventListener('visibilitychange', onVisibility);
     root_.addEventListener('pointermove', wake);
+
+    /* ---------- text size ---------- */
+    function applySize(px, persist) {
+      root_.style.setProperty('--reader-size', px + 'px');
+      sizeVal.textContent = px + 'px';
+      layout();
+      render();
+      if (persist) S.setSettings({ fontSize: px });
+    }
+    sizeInput.addEventListener('input', () => applySize(+sizeInput.value, true));
+    // tapping the stage closes the sheet
+    stage.addEventListener('pointerdown', () => { sheet.hidden = true; });
+
+    /* ---------- keep the screen on while the reader is open ---------- */
+    let wakeLock = null;
+    async function holdScreen() {
+      try {
+        if (!('wakeLock' in navigator) || wakeLock) return;
+        wakeLock = await navigator.wakeLock.request('screen');
+        wakeLock.addEventListener('release', () => { wakeLock = null; });
+      } catch (_) { /* unsupported or denied: the screen may dim, nothing else breaks */ }
+    }
 
     const ro = new ResizeObserver(() => { layout(); render(); });
     ro.observe(stage);
 
     /* ---------- init ---------- */
-    tempoEl.textContent = base + ' WPM';
     buildTimeline();
+    updateTempo();
+    const savedSize = S.settings().fontSize;
+    if (savedSize) root_.style.setProperty('--reader-size', savedSize + 'px');
     layout();
+    sizeInput.value = savedSize || Math.round(parseFloat(getComputedStyle(text).fontSize));
+    sizeVal.textContent = sizeInput.value + 'px';
     setPlayIcon();
     render();
+    holdScreen();
     if (n === 0) playBtn.disabled = true;
 
     return {
@@ -306,11 +405,12 @@
         cancelAnimationFrame(raf);
         clearTimeout(idleTimer);
         ro.disconnect();
+        if (wakeLock) { wakeLock.release().catch(() => {}); wakeLock = null; }
         document.removeEventListener('keydown', onKey);
         document.removeEventListener('visibilitychange', onVisibility);
       },
       // exposed for tests
-      _state: () => ({ pos: { ...pos }, playing, ended, total, lines: lines.length })
+      _state: () => ({ pos: { ...pos }, playing, ended, total, lines: lines.length, wpm, adj })
     };
   }
 

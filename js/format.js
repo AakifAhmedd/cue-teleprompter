@@ -123,6 +123,19 @@
     return 0;
   }
 
+  // Token indices where a sentence begins (first word after a sentence end, break or label).
+  function sentenceStarts(tokens) {
+    const out = [];
+    let atStart = true;
+    tokens.forEach((t, i) => {
+      if (t.t === 'w') {
+        if (atStart) { out.push(i); atStart = false; }
+        if (t.p === 2) atStart = true;
+      } else atStart = true;
+    });
+    return out;
+  }
+
   function tokenSeconds(tok, wpm) {
     return beats(tok) * 60 / wpm;
   }
@@ -140,7 +153,7 @@
     return m + ':' + String(s).padStart(2, '0');
   }
 
-  const api = { DEFAULT_TEMPO, MIN_TEMPO, MAX_TEMPO, clampTempo, parse, beats, tokenSeconds, estimateSeconds, formatDuration };
+  const api = { DEFAULT_TEMPO, MIN_TEMPO, MAX_TEMPO, clampTempo, parse, beats, sentenceStarts, tokenSeconds, estimateSeconds, formatDuration };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.CueFormat = api;
 })(typeof self !== 'undefined' ? self : this);

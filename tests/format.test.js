@@ -47,4 +47,11 @@ assert.strictEqual(F.tokenSeconds({ t: 'w', s: 'a', p: 0 }, 120), 0.5);
 assert.strictEqual(F.formatDuration(125), '2:05');
 assert.ok(F.estimateSeconds(F.parse('One two three four.').tokens, 120) > 2);
 
+// sentence starts: after sentence ends, breaks and labels
+s = F.parse('## Intro\nHello there, friends. Welcome!\n\nSecond part here');
+assert.deepStrictEqual(F.sentenceStarts(s.tokens), [1, 4, 6]);
+assert.strictEqual(s.tokens[1].s, 'Hello');
+assert.strictEqual(s.tokens[4].s, 'Welcome!');
+assert.strictEqual(s.tokens[6].s, 'Second');
+
 console.log('format tests passed');

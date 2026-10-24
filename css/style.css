@@ -281,3 +281,40 @@ body.is-reading .app-header { display: none; }
 .play-btn svg { width: 40px; height: 40px; }
 .play-btn:active { transform: scale(0.96); }
 .play-btn:disabled { opacity: 0.4; }
+
+/* ---------- reader controls: tempo, sentence skip ---------- */
+.reader__ctl { display: flex; align-items: center; justify-content: center; gap: 12px; }
+.ctl-btn {
+  appearance: none;
+  width: 50px; height: 50px;
+  display: grid; place-items: center;
+  padding: 0;
+  color: var(--text);
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: 50%;
+  box-shadow: var(--glass-shadow);
+  backdrop-filter: blur(16px) saturate(150%);
+  -webkit-backdrop-filter: blur(16px) saturate(150%);
+  cursor: pointer;
+}
+.ctl-btn svg { width: 24px; height: 24px; }
+.ctl-btn:active { transform: scale(0.94); }
+.icon-btn--text { font: inherit; font-weight: 700; font-size: 15px; }
+
+/* ---------- text size sheet ---------- */
+.sheet {
+  position: absolute;
+  top: calc(64px + var(--safe-top));
+  right: 14px;
+  width: min(260px, calc(100% - 28px));
+  padding: 14px 16px;
+  background: var(--glass-strong);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-m);
+  box-shadow: var(--glass-shadow);
+  backdrop-filter: blur(24px) saturate(150%);
+  -webkit-backdrop-filter: blur(24px) saturate(150%);
+}
+.sheet__row { display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 14px; color: var(--muted); }
+.sheet input[type="range"] { width: 100%; accent-color: var(--accent); }
