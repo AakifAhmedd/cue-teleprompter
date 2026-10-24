@@ -22,6 +22,7 @@ Versioning rules for every change are in [VERSIONING.md](VERSIONING.md).
 node tests/format.test.js
 node tests/store.test.js
 node tests/backup.test.js
+node tests/tutorial.test.js
 ```
 
 Browser regressions use Playwright as a development-only tool; the app has no
@@ -126,3 +127,20 @@ saves the actual script order, keeps the moved chapter selected, and carries its
 heading, speech text, notes and cues together. Header metadata and any opening
 text before the first heading stay at the top. Tempo cues still apply until
 changed or reset in their new order. Reordering does not rewrite your words.
+
+## Built-in tutorial
+
+A removable **CUE Tutorial — five-minute practice** appears once in each library,
+including existing installations upgrading to this feature. Its spoken text is
+Abraham Lincoln's public-domain Second Inaugural Address (4 March 1865), sourced
+from the [U.S. National Park Service transcript](https://www.nps.gov/linc/learn/historyculture/lincoln-second-inaugural.htm).
+Typography was normalized; chapter headings, unspoken CUE instructions and two
+short timed pauses were added.
+At its 150 WPM header pace it runs for about five minutes; your focus mode and
+punctuation settings affect the estimate. The historical text is practice
+material, not a suggested script for an event.
+
+The tutorial ships inside the app and works offline. Editing it is respected;
+deleting it prevents automatic reappearance. The **Tutorial** library button
+opens your existing copy or adds a fresh copy if you removed it. Other scripts
+and personal settings are preserved.

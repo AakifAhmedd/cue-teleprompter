@@ -69,10 +69,11 @@
 
     const tools = el(`<div class="library-tools">
       <input type="search" class="search" id="script-search" aria-label="Search scripts" placeholder="Search scripts…">
-      <div class="editor-tools"><button class="btn btn--small" id="backup">Back up scripts</button><label class="btn btn--small">Import backup<input type="file" id="restore" accept=".json,application/json" hidden></label></div>
+      <div class="editor-tools"><button class="btn btn--small" id="tutorial">Tutorial</button><button class="btn btn--small" id="backup">Back up scripts</button><label class="btn btn--small">Import backup<input type="file" id="restore" accept=".json,application/json" hidden></label></div>
       <p class="muted search-status" id="search-status" role="status"></p>
     </div>`);
     view.appendChild(tools);
+    tools.querySelector('#tutorial').onclick = () => { const rec = S.addTutorial(CueTutorial.text); location.hash = '#/read/' + rec.id; };
     tools.querySelector('#backup').disabled = !scripts.length;
     tools.querySelector('#backup').onclick = () => download(B.encode(S.list()), 'cue-scripts.json', 'application/json');
     tools.querySelector('#restore').onchange = async e => {
@@ -344,6 +345,7 @@
     });
   }
 
+  S.ensureTutorial(CueTutorial.text);
   route();
   showVersion();
   registerServiceWorker();

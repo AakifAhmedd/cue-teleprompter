@@ -83,7 +83,7 @@
         '<label class="sheet__focus">Reading focus<select aria-label="Reading focus" data-el="focus"><option value="word">Word by word</option><option value="line">Centre guide</option></select></label>' +
       '</div>' +
       '<dialog class="agenda" aria-labelledby="agenda-title"><div class="toolbar"><h2 id="agenda-title">Agenda</h2><button class="btn btn--small" data-act="reorder" aria-pressed="false">Reorder</button><button class="btn btn--small" data-act="close-agenda">Close</button></div>' +
-        '<p class="muted">Choose a section, then press Play. Shortcuts: 1–9, Page Up / Page Down.</p>' +
+        '<p class="muted" data-el="agendaHelp">Choose a section, then press Play. Shortcuts: 1–9, Page Up / Page Down.</p>' +
         '<div class="agenda-list">' + sectionList + '</div></dialog>' +
       '<div class="reader__countdown" data-el="countdown" role="status" aria-live="polite" hidden></div>' +
       '<div class="reader__bar">' +
@@ -284,6 +284,7 @@
       if (value) { pause(); drag = null; }
       reordering = value;
       root_.classList.toggle('is-reordering', value);
+      root_.querySelector('[data-el="agendaHelp"]').textContent = value ? 'Drag a dotted handle, or use Up and Down. Each move saves the whole chapter. Choose Done when finished.' : 'Choose a section, then press Play. Shortcuts: 1–9, Page Up / Page Down.';
       root_.querySelectorAll('[data-act="reorder"]').forEach(button => {
         button.textContent = value ? 'Done' : 'Reorder';
         button.setAttribute('aria-pressed', String(value));

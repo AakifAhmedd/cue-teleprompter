@@ -26,6 +26,19 @@
   }
 
   const Store = {
+    addTutorial(text) {
+      const all = read(KEY_SCRIPTS, []);
+      const existing = all.find(rec => rec.id === 'cue-tutorial');
+      if (existing) return existing;
+      const rec = { id: 'cue-tutorial', text, pos: 0, adj: 0, updatedAt: Date.now() };
+      all.push(rec); write(KEY_SCRIPTS, all);
+      return rec;
+    },
+    ensureTutorial(text) {
+      if (this.settings().tutorialAdded) return;
+      this.addTutorial(text);
+      this.setSettings({ tutorialAdded: true });
+    },
     isSessionOnly() { return Object.keys(memory).length > 0; },
     list() {
       return read(KEY_SCRIPTS, []).sort((a, b) => b.updatedAt - a.updatedAt);
