@@ -58,7 +58,7 @@
             <button class="btn btn--small btn--danger" data-act="delete">Delete</button>
           </div>
         </article>`);
-      card.querySelector('.card__main').onclick = () => { location.hash = '#/edit/' + rec.id; };
+      card.querySelector('.card__main').onclick = () => { location.hash = '#/read/' + rec.id; };
       card.querySelector('[data-act="edit"]').onclick = () => { location.hash = '#/edit/' + rec.id; };
       card.querySelector('[data-act="delete"]').onclick = () => {
         if (confirm('Delete "' + sc.title + '"?')) { S.remove(rec.id); renderLibrary(); }
@@ -141,11 +141,23 @@
   }
 
   /* ---------- router ---------- */
+  let current = null;   // the open reader, so it can be cleaned up on navigation
+
   function route() {
+    if (current) { current.destroy(); current = null; }
+    document.body.classList.remove('is-reading');
     const [name, id] = location.hash.replace(/^#\/?/, '').split('/');
     window.scrollTo(0, 0);
     if (name === 'new') return renderEditor(null);
     if (name === 'edit' && id) return renderEditor(id);
+    if (name === 'read' && id) {
+      const rec = S.get(id);
+      if (!rec) { location.hash = '#/'; return; }
+      document.body.classList.add('is-reading');
+      current = CueReader.open(view, rec, () => { location.hash = '#/'; });
+      window.__cueReader = current;   // handy for debugging on a device
+      return;
+    }
     return renderLibrary();
   }
   window.addEventListener('hashchange', route);
