@@ -436,3 +436,14 @@ body.is-reading .storage-warning { position: fixed; z-index: 20; top: calc(64px 
   .reader__section { top: calc(60px + var(--safe-top)); min-height: 40px; padding-block: 4px; }
   .reader__section-next { display: none; }
 }
+
+.agenda__row { position: relative; }
+.agenda__handle, .agenda__moves { display: none; }
+.is-reordering .agenda__row { display: grid; grid-template-columns: 30px minmax(0, 1fr); gap: 4px 6px; padding: 4px 0 10px; border-radius: var(--radius-s); }
+.is-reordering .agenda__item { margin-top: 0; }
+.is-reordering .agenda__handle { display: block; width: 30px; min-height: 44px; border: 0; background: transparent; color: var(--accent); font: 24px var(--font-body); touch-action: none; cursor: grab; }
+.is-reordering .agenda__moves { display: flex; grid-column: 2; gap: 6px; }
+.is-reordering .agenda__moves .btn { flex: 1; padding: 7px 4px; font-size: 12px; }
+.agenda__row.is-dragging { opacity: 0.45; }
+.agenda__row.is-drop-target { outline: 2px dashed var(--accent); outline-offset: -1px; }
+.reader__agenda-head [data-act="reorder"] { margin-top: 10px; }

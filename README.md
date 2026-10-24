@@ -116,3 +116,13 @@ agenda. All agenda markers come from the script's `##` headings, follow playback
 and update when pace changes. Selecting a marker still pauses before moving.
 The stored scripts, local backups and playback controls are unchanged by this
 layout update.
+
+## Reordering the agenda
+
+Choose **Reorder** in the wide agenda panel or the phone's Agenda dialog. Reading
+pauses. Drag a chapter using its dotted handle, or use its Up / Down buttons
+(the handle also accepts arrow keys). **Done** leaves reorder mode. Each move
+saves the actual script order, keeps the moved chapter selected, and carries its
+heading, speech text, notes and cues together. Header metadata and any opening
+text before the first heading stay at the top. Tempo cues still apply until
+changed or reset in their new order. Reordering does not rewrite your words.

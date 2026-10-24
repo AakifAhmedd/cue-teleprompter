@@ -89,4 +89,15 @@ assert.strictEqual(F.estimateSeconds(s.tokens, 120, F.playbackPacing(savedPacing
 assert.strictEqual(F.estimateSeconds(s.tokens, 120, F.playbackPacing(savedPacing, 'line')), 1);
 assert.strictEqual(savedPacing.punctuation, true, 'centre mode does not overwrite word-mode settings');
 assert.strictEqual(F.tokenSeconds({ t: 'pause', seconds: 3 }, 120, F.playbackPacing(savedPacing, 'line')), 3);
+const agendaSource = '---\r\ntitle: Agenda\r\ntempo: 120\r\n---\r\nOpening words.\r\n\r\n## Alpha\r\nAlpha body.\r\n[note Alpha cue]\r\n\r\n## Beta\r\n[pause 2]\r\nBeta body.\r\n\r\n## Gamma\r\nGamma body.\r\n[hold Gamma cue]';
+const moved = F.moveSection(agendaSource, 2, 0);
+assert.ok(moved.startsWith(F.sourceSections(agendaSource).prefix));
+assert.deepStrictEqual(F.parse(moved).tokens.filter(t => t.t === 'h').map(t => t.s), ['Gamma', 'Alpha', 'Beta']);
+assert.strictEqual(F.parse(moved).words, F.parse(agendaSource).words);
+assert.ok(F.sourceSections(moved).sections[0].includes('[hold Gamma cue]'));
+assert.ok(F.sourceSections(moved).sections[1].includes('[note Alpha cue]'));
+assert.ok(F.sourceSections(moved).sections[2].includes('[pause 2]'));
+assert.strictEqual(F.moveSection(agendaSource, 1, 1), agendaSource);
+assert.throws(() => F.moveSection(agendaSource, 0, 5));
+assert.strictEqual(F.sourceSections('---\n## not a body heading\n---\n## Body\nwords').sections.length, 1);
 console.log('format tests passed');

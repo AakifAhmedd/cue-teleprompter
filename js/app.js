@@ -292,6 +292,20 @@
   /* ---------- router ---------- */
   let current = null;   // the open reader, so it can be cleaned up on navigation
 
+  function mountReader(rec, options) {
+    current = CueReader.open(view, rec, () => { location.hash = '#/'; }, (text, section, agendaOpen) => {
+      const latest = S.get(rec.id);
+      if (!latest || latest.text !== rec.text) {
+        toast('The script changed in another tab. Reopen it before reordering.');
+        location.hash = '#/'; return;
+      }
+      current.destroy(); current = null;
+      const updated = S.save({ id: rec.id, text });
+      mountReader(updated, { section, agendaOpen, reordering: true });
+    }, options);
+    window.__cueReader = current;
+  }
+
   function route() {
     if (current) { current.destroy(); current = null; }
     document.body.classList.remove('is-reading');
@@ -305,8 +319,7 @@
       const rec = S.get(id);
       if (!rec) { location.hash = '#/'; return; }
       document.body.classList.add('is-reading');
-      current = CueReader.open(view, rec, () => { location.hash = '#/'; });
-      window.__cueReader = current;   // handy for debugging on a device
+      mountReader(rec);
       return;
     }
     return renderLibrary();

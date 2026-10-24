@@ -68,6 +68,32 @@
     return { meta, body: lines.slice(start), warnings };
   }
 
+  // Source slices, rather than rendered tokens, keep every section's text and cues together.
+  function sourceSections(text) {
+    const source = String(text);
+    const lines = [...source.matchAll(/[^\r\n]+(?:\r\n|\r|\n|$)|(?:\r\n|\r|\n)/g)];
+    let first = 0, bodyStart = 0;
+    while (first < lines.length && !lines[first][0].trim()) first++;
+    if (lines[first] && lines[first][0].trim() === '---') {
+      const end = lines.findIndex((line, i) => i > first && line[0].trim() === '---');
+      if (end >= 0) bodyStart = lines[end].index + lines[end][0].length;
+    }
+    const heads = lines.filter(line => line.index >= bodyStart && /^#{1,6}\s+.+$/.test(line[0].trim()));
+    return {
+      prefix: source.slice(0, heads.length ? heads[0].index : source.length),
+      sections: heads.map((line, i) => source.slice(line.index, i + 1 < heads.length ? heads[i + 1].index : source.length))
+    };
+  }
+
+  function moveSection(text, from, to) {
+    const parts = sourceSections(text);
+    if (![from, to].every(i => Number.isInteger(i) && i >= 0 && i < parts.sections.length)) throw new Error('Invalid section move');
+    if (from === to) return text;
+    const [section] = parts.sections.splice(from, 1);
+    parts.sections.splice(to, 0, section);
+    return parts.prefix + parts.sections.map((block, i) => i < parts.sections.length - 1 && !/[\r\n]$/.test(block) ? block + '\n\n' : block).join('');
+  }
+
   function punctClass(word) {
     const w = word.replace(/["'’”)\]]+$/, '');
     if (/[.!?…]$/.test(w)) return ABBREVIATIONS.test(w) ? 0 : 2;
@@ -192,7 +218,7 @@
     return m + ':' + String(s).padStart(2, '0');
   }
 
-  const api = { DEFAULT_TEMPO, MIN_TEMPO, MAX_TEMPO, clampTempo, pacing, playbackPacing, parse, beats, sentenceStarts, tokenSeconds, tempoFor, estimateSeconds, formatDuration };
+  const api = { DEFAULT_TEMPO, MIN_TEMPO, MAX_TEMPO, clampTempo, pacing, playbackPacing, sourceSections, moveSection, parse, beats, sentenceStarts, tokenSeconds, tempoFor, estimateSeconds, formatDuration };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.CueFormat = api;
 })(typeof self !== 'undefined' ? self : this);

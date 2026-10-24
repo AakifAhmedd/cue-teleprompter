@@ -224,6 +224,44 @@ const { chromium } = require('playwright');
     await exit();
     await page.evaluate(() => CueStore.setSettings({ startDelay: 0 }));
 
+    // Reorder source chapters, not just their agenda labels.
+    const reorderSource = '---\ntitle: Reorder practice\ntempo: 120\n---\nOpening words stay first.\n\n## Alpha\nAlpha body.\n[note Alpha cue]\n\n## Beta\n[pause 2]\nBeta body.\n\n## Gamma\nGamma body.\n[hold Gamma cue]';
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await open(reorderSource);
+    const recordId = await page.evaluate(() => location.hash.split('/').pop());
+    const storedHeads = () => page.evaluate(id => CueFormat.parse(CueStore.get(id).text).tokens.filter(t => t.t === 'h').map(t => t.s), recordId);
+    await page.getByRole('button', { name: 'Play', exact: true }).click();
+    await page.locator('.reader__agenda [data-act="reorder"]').click();
+    assert.equal((await state()).playing, false);
+    const sourceHandle = await page.locator('.reader__agenda [data-reorder-handle="2"]').boundingBox();
+    const targetRow = await page.locator('.reader__agenda [data-agenda-row="0"]').boundingBox();
+    await page.mouse.move(sourceHandle.x + 12, sourceHandle.y + 20); await page.mouse.down();
+    await page.mouse.move(sourceHandle.x + 12, targetRow.y + targetRow.height / 2, { steps: 8 });
+    await page.mouse.up();
+    await until(id => CueFormat.parse(CueStore.get(id).text).tokens.filter(t => t.t === 'h')[0].s === 'Gamma', recordId);
+    assert.deepEqual(await storedHeads(), ['Gamma', 'Alpha', 'Beta']);
+    assert.equal((await state()).reordering, true);
+    assert.equal(await page.locator('.is-now').textContent(), 'Gamma');
+    assert.ok(await page.evaluate(id => CueStore.get(id).text.startsWith('---\ntitle: Reorder practice\ntempo: 120\n---\nOpening words stay first.'), recordId));
+    await page.locator('.reader__agenda [data-move-section="0"][data-direction="1"]').click();
+    assert.deepEqual(await storedHeads(), ['Alpha', 'Gamma', 'Beta']);
+    await page.locator('.reader__agenda [data-reorder-handle="1"]').press('ArrowDown');
+    assert.deepEqual(await storedHeads(), ['Alpha', 'Beta', 'Gamma']);
+    await page.locator('.reader__agenda [data-act="reorder"]').click();
+    assert.equal((await state()).reordering, false);
+    await exit();
+    await page.setViewportSize({ width: 390, height: 844 });
+    await open(reorderSource);
+    await page.getByRole('button', { name: 'Agenda', exact: true }).click();
+    await page.locator('.agenda [data-act="reorder"]').click();
+    await page.locator('.agenda [data-move-section="2"][data-direction="-1"]').click();
+    assert.equal(await page.locator('.agenda').isVisible(), true, 'phone reorder keeps agenda open');
+    assert.equal(await page.locator('.agenda [data-section="1"] .agenda__label').textContent(), 'Gamma');
+    await page.screenshot({ path: '/private/tmp/cue-agenda-reordering-phone.png' });
+    await page.locator('.agenda [data-act="reorder"]').click();
+    await page.keyboard.press('Escape');
+    await exit();
+
     // Focus modes preserve place and pace; duration estimates follow their different punctuation behavior.
     await page.getByRole('button', { name: 'Settings', exact: true }).click();
     await page.locator('#reading-focus').selectOption('line');

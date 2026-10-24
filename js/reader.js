@@ -35,7 +35,7 @@
     return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   }
 
-  function open(host, rec, onExit) {
+  function open(host, rec, onExit, onReorder, options = {}) {
     let focusMode = S.settings().focusMode === 'line' ? 'line' : 'word';
     let guideRows = [3, 4, 5].includes(S.settings().guideRows) ? S.settings().guideRows : 4;
     const marker = () => focusMode === 'line' ? 0.5 : MARKER;
@@ -61,10 +61,11 @@
       else html += '<div class="gap" data-i="' + i + '"></div>';
     });
     function sectionButton(section, k) {
-      return '<button class="btn agenda__item" data-section="' + k + '"><span class="agenda__number" aria-hidden="true">' + String(k + 1).padStart(2, '0') + '</span><span class="agenda__content"><span class="agenda__label">' + esc(section.title) + '</span><span class="agenda__meta"><span data-section-state></span><span class="mono" data-section-time="' + k + '"></span></span></span></button>';
+      const label = esc(section.title);
+      return '<div class="agenda__row" data-agenda-row="' + k + '"><button class="agenda__handle" data-reorder-handle="' + k + '" aria-label="Drag section ' + label + '" title="Drag to move; arrow keys also work">⠿</button><button class="btn agenda__item" data-section="' + k + '"><span class="agenda__number" aria-hidden="true">' + String(k + 1).padStart(2, '0') + '</span><span class="agenda__content"><span class="agenda__label">' + label + '</span><span class="agenda__meta"><span data-section-state></span><span class="mono" data-section-time="' + k + '"></span></span></span></button><div class="agenda__moves"><button class="btn btn--small" data-move-section="' + k + '" data-direction="-1" aria-label="Move ' + label + ' up"' + (k === 0 ? ' disabled' : '') + '>↑ Up</button><button class="btn btn--small" data-move-section="' + k + '" data-direction="1" aria-label="Move ' + label + ' down"' + (k === sections.length - 1 ? ' disabled' : '') + '>↓ Down</button></div></div>';
     }
     const sectionList = sections.map(sectionButton).join('');
-    const sidebar = sections.length ? '<aside class="reader__agenda" aria-label="Event agenda markers"><div class="reader__agenda-head"><h2>Event agenda</h2><span class="mono">' + sections.length + ' sections</span></div><nav aria-label="Script sections">' + sectionList + '</nav><p class="reader__agenda-hint">Select a section to pause and jump.</p></aside>' : '';
+    const sidebar = sections.length ? '<aside class="reader__agenda" aria-label="Event agenda markers"><div class="reader__agenda-head"><h2>Event agenda</h2><span class="mono">' + sections.length + ' sections</span><button class="btn btn--small" data-act="reorder" aria-pressed="false">Reorder</button></div><nav class="agenda-list" aria-label="Script sections">' + sectionList + '</nav><p class="reader__agenda-hint">Select a section to pause and jump.</p></aside>' : '';
     const sectionStrip = sections.length ? '<button class="reader__section" data-act="agenda" aria-label="Open event agenda"><span class="reader__section-number mono" data-el="sectionNumber"></span><span class="reader__section-content"><span data-el="sectionTitle"></span><span class="reader__section-next" data-el="sectionNext"></span></span><span aria-hidden="true">⌄</span></button>' : '';
     root_.innerHTML = sidebar + sectionStrip +
       '<div class="reader__stage"><div class="reader__guide" aria-hidden="true"></div><div class="reader__text">' + html + '<div class="reader__end">end of script</div></div><div class="reader__fade reader__fade--past" aria-hidden="true"></div><div class="reader__fade reader__fade--next" aria-hidden="true"></div></div>' +
@@ -81,9 +82,9 @@
         '<label class="sheet__focus">Guide height<select aria-label="Guide height" data-el="guideRows"><option value="3">3 rows</option><option value="4">4 rows</option><option value="5">5 rows</option></select></label>' +
         '<label class="sheet__focus">Reading focus<select aria-label="Reading focus" data-el="focus"><option value="word">Word by word</option><option value="line">Centre guide</option></select></label>' +
       '</div>' +
-      '<dialog class="agenda" aria-labelledby="agenda-title"><div class="toolbar"><h2 id="agenda-title">Agenda</h2><button class="btn btn--small" data-act="close-agenda">Close</button></div>' +
+      '<dialog class="agenda" aria-labelledby="agenda-title"><div class="toolbar"><h2 id="agenda-title">Agenda</h2><button class="btn btn--small" data-act="reorder" aria-pressed="false">Reorder</button><button class="btn btn--small" data-act="close-agenda">Close</button></div>' +
         '<p class="muted">Choose a section, then press Play. Shortcuts: 1–9, Page Up / Page Down.</p>' +
-        sectionList + '</dialog>' +
+        '<div class="agenda-list">' + sectionList + '</div></dialog>' +
       '<div class="reader__countdown" data-el="countdown" role="status" aria-live="polite" hidden></div>' +
       '<div class="reader__bar">' +
         '<div class="reader__stats mono" data-el="stats"></div>' +
@@ -215,6 +216,8 @@
 
     /* ---------- state ---------- */
     let pos = { i: Math.min(Math.max(0, rec.pos || 0), Math.max(0, n - 1)), f: 0 };
+    if (Number.isInteger(options.section) && sections[options.section]) pos = { i: sections[options.section].i, f: 0 };
+    let reordering = false;
     let playing = false;
     let countdown = 0;
     let needsCountdown = true;
@@ -276,6 +279,64 @@
       savePos();
       wake();
     }
+
+    function setReordering(value) {
+      if (value) { pause(); drag = null; }
+      reordering = value;
+      root_.classList.toggle('is-reordering', value);
+      root_.querySelectorAll('[data-act="reorder"]').forEach(button => {
+        button.textContent = value ? 'Done' : 'Reorder';
+        button.setAttribute('aria-pressed', String(value));
+      });
+    }
+    function moveSection(from, to) {
+      if (!onReorder || !reordering || from === to || !sections[to]) return;
+      pause();
+      onReorder(F.moveSection(rec.text, from, to), to, agenda.open);
+    }
+
+    // Pointer handles work with mouse, touch and pen; plain text never becomes draggable.
+    let sectionDrag = null;
+    root_.addEventListener('pointerdown', e => {
+      const handle = e.target.closest('[data-reorder-handle]');
+      if (!handle || !reordering || !e.isPrimary || e.button !== 0) return;
+      e.preventDefault();
+      handle.setPointerCapture(e.pointerId);
+      sectionDrag = { handle, scope: handle.closest('.agenda-list'), from: Number(handle.dataset.reorderHandle), to: Number(handle.dataset.reorderHandle), y: e.clientY, moved: false };
+    });
+    root_.addEventListener('pointermove', e => {
+      if (!sectionDrag) return;
+      const d = sectionDrag;
+      if (!d.moved && Math.abs(e.clientY - d.y) < 6) return;
+      d.moved = true;
+      let nearest = Infinity;
+      d.scope.querySelectorAll('[data-agenda-row]').forEach(row => {
+        const box = row.getBoundingClientRect();
+        const distance = Math.abs(e.clientY - box.y - box.height / 2);
+        if (distance < nearest) { nearest = distance; d.to = Number(row.dataset.agendaRow); }
+      });
+      d.scope.querySelectorAll('[data-agenda-row]').forEach(row => {
+        row.classList.toggle('is-dragging', Number(row.dataset.agendaRow) === d.from);
+        row.classList.toggle('is-drop-target', Number(row.dataset.agendaRow) === d.to && d.to !== d.from);
+      });
+    });
+    function endSectionDrag(e) {
+      if (!sectionDrag) return;
+      const d = sectionDrag; sectionDrag = null;
+      d.scope.querySelectorAll('.is-dragging, .is-drop-target').forEach(row => row.classList.remove('is-dragging', 'is-drop-target'));
+      if (e.type !== 'pointercancel' && d.moved) moveSection(d.from, d.to);
+    }
+    root_.addEventListener('pointerup', endSectionDrag);
+    root_.addEventListener('pointercancel', endSectionDrag);
+    root_.addEventListener('keydown', e => {
+      const handle = e.target.closest('[data-reorder-handle]');
+      if (handle && reordering && ['ArrowUp', 'ArrowDown'].includes(e.code)) {
+        e.preventDefault();
+        const from = Number(handle.dataset.reorderHandle);
+        moveSection(from, from + (e.code === 'ArrowUp' ? -1 : 1));
+      }
+    });
+    agenda.addEventListener('cancel', () => setReordering(false));
 
     function jumpSection(k) {
       if (!sections[k]) return;
@@ -381,6 +442,7 @@
 
     function play() {
       if (n === 0) return;
+      setReordering(false);
       drag = null;   // a gesture begun while paused cannot scrub after playback starts
       if (ended) { pos = { i: 0, f: 0 }; ended = false; shownI = -1; needsCountdown = true; elapsed = 0; }
       const resumeHold = holding;
@@ -410,7 +472,7 @@
     let drag = null;
     stage.addEventListener('pointerdown', (e) => {
       wake();
-      if (playing || !n || !e.isPrimary || e.button !== 0) return;   // text is inert while playing
+      if (reordering || playing || !n || !e.isPrimary || e.button !== 0) return;   // text is inert while playing
       drag = { startClientY: e.clientY, startY: yAt(pos.i, pos.f), moved: false, target: e.target };
       stage.setPointerCapture(e.pointerId);
     });
@@ -444,6 +506,8 @@
       onExit();
     }
     root_.addEventListener('click', (e) => {
+      const move = e.target.closest('[data-move-section]');
+      if (move) { const from = Number(move.dataset.moveSection); moveSection(from, from + Number(move.dataset.direction)); return; }
       const section = e.target.closest('[data-section]');
       if (section) { jumpSection(Number(section.dataset.section)); return; }
       const btn = e.target.closest('[data-act]');
@@ -460,11 +524,12 @@
         updateAgenda();
         agenda.showModal();
       }
-      else if (act === 'close-agenda') agenda.close();
+      else if (act === 'reorder') setReordering(!reordering);
+      else if (act === 'close-agenda') { setReordering(false); agenda.close(); }
       else if (act === 'size') sheet.hidden = !sheet.hidden;
     });
     function onKey(e) {
-      if (agenda.open) return;
+      if (agenda.open || reordering) return;
       if (e.defaultPrevented || e.altKey || e.ctrlKey || e.metaKey) return;
       if (e.target.closest('input, textarea, select, [contenteditable="true"]')) return;
       if (e.code === 'Space') {
@@ -554,9 +619,18 @@
     render();
     holdScreen();
     if (n === 0) playBtn.disabled = true;
+    if (options.reordering) {
+      setReordering(true);
+      if (options.agendaOpen) agenda.showModal();
+      const scope = options.agendaOpen ? agenda : root_.querySelector('.reader__agenda');
+      const handle = scope && scope.querySelector('[data-reorder-handle="' + options.section + '"]');
+      if (handle) handle.focus({ preventScroll: true });
+      savePos();
+    }
 
     return {
       destroy() {
+        if (destroyed) return;
         destroyed = true;
         agenda.close();
         playing = false;
@@ -569,7 +643,7 @@
         document.removeEventListener('visibilitychange', onVisibility);
       },
       // exposed for tests
-      _state: () => ({ pos: { ...pos }, playing, ended, holding, focusMode, guideRows, countdown, elapsed, total, lines: lines.length, wpm, adj })
+      _state: () => ({ pos: { ...pos }, playing, reordering, ended, holding, focusMode, guideRows, countdown, elapsed, total, lines: lines.length, wpm, adj })
     };
   }
 
