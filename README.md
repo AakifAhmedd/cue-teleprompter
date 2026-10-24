@@ -98,7 +98,7 @@ safe: scripts and backups are plain text. Nothing is uploaded to a server.
 
 Settings offers **Word by word** (the default) and **Centre guide**. Word mode
 keeps the current word underlined. Centre guide puts the reading marker halfway
-down the screen, inside a reading window four rendered text rows tall by default. Choose three,
+down the screen, inside a reading window three rendered text rows tall by default. Choose three,
 four or five rows in Settings or Aa; short screens cap the height to keep controls clear. It scrolls continuously through punctuation;
 word mode keeps its configured punctuation pauses. Text above the window is
 dimmed and blurred; upcoming text is softer and fades into full contrast as it
@@ -144,3 +144,8 @@ The tutorial ships inside the app and works offline. Editing it is respected;
 deleting it prevents automatic reappearance. The **Tutorial** library button
 opens your existing copy or adds a fresh copy if you removed it. Other scripts
 and personal settings are preserved.
+
+Timed pauses and holds use a stationary status badge rather than a separate row in
+the scrolling text. This keeps the same scroll position at entry and exit while
+preserving cue duration. The tutorial is regression-tested at 300 WPM to check
+these transitions on phone and desktop layouts.

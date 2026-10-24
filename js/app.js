@@ -193,7 +193,7 @@
       form.querySelector('#sentence-pause').value = value.sentencePause;
     };
     fill(saved);
-    form.querySelector('#guide-rows').value = [3, 4, 5].includes(S.settings().guideRows) ? S.settings().guideRows : 4;
+    form.querySelector('#guide-rows').value = [3, 4, 5].includes(S.settings().guideRows) ? S.settings().guideRows : 3;
     form.querySelector('#reading-focus').value = S.settings().focusMode === 'line' ? 'line' : 'word';
     form.querySelector('#start-delay').value = [3, 5, 10].includes(S.settings().startDelay) ? S.settings().startDelay : 0;
     form.querySelector('#punctuation').checked = saved.punctuation;

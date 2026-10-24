@@ -85,6 +85,37 @@ const { chromium } = require('playwright');
     await page.reload();
     assert.equal(await page.evaluate(() => CueStore.list().filter(rec => rec.id === 'cue-tutorial').length), 1);
 
+    for (const width of [390, 1440]) {
+      await page.setViewportSize({ width, height: 844 });
+      await page.evaluate(() => CueStore.setSettings({ focusMode: 'line', fontSize: 44 }));
+      await open(await page.evaluate(() => CueTutorial.text.replace(/tempo: \d+/, 'tempo: 300')));
+      await page.getByRole('button', { name: 'Play', exact: true }).click();
+      const stress = await page.evaluate(() => {
+        const tokens = CueFormat.parse(CueStore.get(location.hash.split('/').pop()).text).tokens;
+        let previous = window.__cueReader._state();
+        let y = new DOMMatrixReadOnly(document.querySelector('.reader__text').style.transform).m42;
+        let maxCueExit = 0;
+        for (let k = 0; k < 50000; k++) {
+          if (previous.holding) document.querySelector('[data-act="toggle"]').click();
+          stepReader(1 / 120);
+          const next = window.__cueReader._state();
+          const nextY = new DOMMatrixReadOnly(document.querySelector('.reader__text').style.transform).m42;
+          if (previous.pos.i !== next.pos.i && ['pause', 'hold'].includes(tokens[previous.pos.i].t)) maxCueExit = Math.max(maxCueExit, Math.abs(nextY - y));
+          previous = next; y = nextY;
+          if (next.ended) break;
+        }
+        return { maxCueExit, ended: previous.ended };
+      });
+      assert.equal(stress.ended, true);
+      assert.ok(stress.maxCueExit < 8, 'no visible cue-exit jump at 300 WPM: ' + stress.maxCueExit);
+      console.log('300 WPM tutorial (' + width + 'px): largest cue-exit step ' + stress.maxCueExit.toFixed(1) + 'px');
+      await exit();
+    }
+    await page.evaluate(() => pendingLocks.splice(0).forEach(resolve => resolve()));
+    await until(() => locksReleased === 2);
+    await page.evaluate(() => { locksReleased = 0; CueStore.setSettings({ focusMode: 'word', fontSize: null }); });
+    await page.setViewportSize({ width: 1280, height: 720 });
+
     await open();
     assert.equal((await state()).total, 2);
     await page.getByRole('button', { name: 'Play', exact: true }).focus();
@@ -298,7 +329,7 @@ const { chromium } = require('playwright');
       const stage = await page.locator('.reader__stage').boundingBox();
       assert.ok(Math.abs(guide.y + guide.height / 2 - (stage.y + stage.height / 2)) < 1, 'guide is centred');
       const rowHeight = await page.locator('.reader__text').evaluate(e => parseFloat(getComputedStyle(e).lineHeight));
-      if (size.height >= 800) assert.ok(Math.abs(guide.height - rowHeight * 4) < 1, 'guide defaults to four text rows');
+      if (size.height >= 800) assert.ok(Math.abs(guide.height - rowHeight * 3) < 1, 'guide defaults to three text rows');
       assert.match(await page.locator('.reader__fade--past').evaluate(e => getComputedStyle(e).backdropFilter), /blur\(3px\)/);
       const past = await page.locator('.reader__fade--past').boundingBox();
       const future = await page.locator('.reader__fade--next').boundingBox();
@@ -309,10 +340,10 @@ const { chromium } = require('playwright');
       const snapshot = await state();
       await page.getByRole('button', { name: 'Text size' }).click();
       if (size.height >= 800) {
-        await page.getByLabel('Guide height', { exact: true }).selectOption('3');
-        assert.ok(Math.abs((await page.locator('.reader__guide').boundingBox()).height - rowHeight * 3) < 1);
-        assert.deepEqual((await state()).pos, snapshot.pos);
         await page.getByLabel('Guide height', { exact: true }).selectOption('4');
+        assert.ok(Math.abs((await page.locator('.reader__guide').boundingBox()).height - rowHeight * 4) < 1);
+        assert.deepEqual((await state()).pos, snapshot.pos);
+        await page.getByLabel('Guide height', { exact: true }).selectOption('3');
       }
       await page.getByLabel('Reading focus', { exact: true }).selectOption('word');
       assert.equal((await state()).pos.i, snapshot.pos.i);

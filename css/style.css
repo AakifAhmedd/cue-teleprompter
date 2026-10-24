@@ -447,3 +447,10 @@ body.is-reading .storage-warning { position: fixed; z-index: 20; top: calc(64px 
 .agenda__row.is-dragging { opacity: 0.45; }
 .agenda__row.is-drop-target { outline: 2px dashed var(--accent); outline-offset: -1px; }
 .reader__agenda-head [data-act="reorder"] { margin-top: 10px; }
+
+/* Wait cues belong to the controls, so entering or leaving them never inserts a scroll gap. */
+.reader__text .cue--wait { display: none; }
+.reader__bar > .reader__cue-status { pointer-events: none; max-width: min(680px, 90vw); padding: 8px 14px; border: 1px solid rgba(201,165,92,0.35); border-radius: var(--radius-s); color: var(--accent); background: var(--glass-strong); font-size: 14px; text-align: center; overflow-wrap: anywhere; }
+.reader__agenda-head { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 4px 8px; }
+.reader__agenda-head h2, .reader__agenda-head > span { grid-column: 1; }
+.reader__agenda-head [data-act="reorder"] { grid-column: 2; grid-row: 1 / span 2; margin-top: 0; }

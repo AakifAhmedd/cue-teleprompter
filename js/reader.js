@@ -37,7 +37,7 @@
 
   function open(host, rec, onExit, onReorder, options = {}) {
     let focusMode = S.settings().focusMode === 'line' ? 'line' : 'word';
-    let guideRows = [3, 4, 5].includes(S.settings().guideRows) ? S.settings().guideRows : 4;
+    let guideRows = [3, 4, 5].includes(S.settings().guideRows) ? S.settings().guideRows : 3;
     const marker = () => focusMode === 'line' ? 0.5 : MARKER;
     const pacing = F.pacing(S.settings().pacing);
     const sc = F.parse(rec.text, pacing);
@@ -56,7 +56,8 @@
     let html = '';
     tokens.forEach((t, i) => {
       if (t.t === 'w') html += '<span class="w' + (t.em ? ' em' : '') + '" data-i="' + i + '">' + esc(t.s) + '</span> ';
-      else if (t.t === 'pause' || t.t === 'hold' || t.t === 'note') html += '<div class="cue" data-i="' + i + '">' + esc(t.t === 'pause' ? 'Pause ' + t.seconds + 's' : t.s) + '</div>';
+      else if (t.t === 'pause' || t.t === 'hold') html += '<span class="cue cue--wait" aria-hidden="true" data-i="' + i + '">' + esc(t.t === 'pause' ? 'Pause ' + t.seconds + 's' : t.s) + '</span>';
+      else if (t.t === 'note') html += '<div class="cue" data-i="' + i + '">' + esc(t.t === 'pause' ? 'Pause ' + t.seconds + 's' : t.s) + '</div>';
       else if (t.t === 'h') html += '<div class="sect" data-i="' + i + '">' + esc(t.s) + '</div>';
       else html += '<div class="gap" data-i="' + i + '"></div>';
     });
@@ -87,6 +88,7 @@
         '<div class="agenda-list">' + sectionList + '</div></dialog>' +
       '<div class="reader__countdown" data-el="countdown" role="status" aria-live="polite" hidden></div>' +
       '<div class="reader__bar">' +
+        '<div class="reader__cue-status" data-el="cueStatus" role="status" hidden></div>' +
         '<div class="reader__stats mono" data-el="stats"></div>' +
         '<div class="reader__tempo mono" data-el="tempo"></div>' +
         '<div class="reader__ctl">' +
@@ -106,6 +108,7 @@
     const tempoEl = root_.querySelector('[data-el="tempo"]');
     const agenda = root_.querySelector('.agenda');
     const countdownEl = root_.querySelector('[data-el="countdown"]');
+    const cueStatus = root_.querySelector('[data-el="cueStatus"]');
     const statsEl = root_.querySelector('[data-el="stats"]');
     const sheet = root_.querySelector('[data-el="sheet"]');
     const sizeInput = root_.querySelector('[data-el="size"]');
@@ -150,6 +153,7 @@
       let curY = -1e9;
       let forceNew = true;
       for (let i = 0; i < n; i++) {
+        if (tokens[i].t === 'pause' || tokens[i].t === 'hold') { lineOf[i] = Math.max(0, lines.length - 1); continue; }
         const e = els[i];
         const y = e.offsetTop + e.offsetHeight / 2;
         const isWord = tokens[i].t === 'w';
@@ -160,12 +164,13 @@
         lineOf[i] = lines.length - 1;
         forceNew = !isWord;
       }
+      if (!lines.length) lines.push({ start: 0, y: 0 });
       const targetHeight = lineHeight * guideRows;
       const strip = root_.querySelector('.reader__section');
       const header = root_.querySelector('.reader__top');
       const bar = root_.querySelector('.reader__bar');
       const topEdge = Math.max(header.offsetHeight, strip && strip.offsetHeight ? strip.offsetTop + strip.offsetHeight : 0) + 12;
-      const firstReadout = statsEl.offsetHeight ? statsEl : tempoEl;
+      const firstReadout = cueStatus.offsetHeight ? cueStatus : statsEl.offsetHeight ? statsEl : tempoEl;
       const bottomEdge = bar.offsetTop + firstReadout.offsetTop - 12;
       const halfRoom = Math.max(16, Math.min(stage.clientHeight / 2 - topEdge, bottomEdge - stage.clientHeight / 2));
       root_.style.setProperty('--guide-half', Math.min(targetHeight / 2, halfRoom) + 'px');
@@ -176,7 +181,6 @@
     }
 
     function yAt(i, f) {
-      if (tokens[i].t === 'pause' || tokens[i].t === 'hold') return lines[lineOf[i]].y;
       const k = lineOf[i];
       const line = lines[k];
       const next = nextLine(k);
@@ -378,6 +382,10 @@
       const stats = F.formatDuration(elapsed) + ' reading · ' + sc.words + ' words';
       if (statsEl.textContent !== stats) statsEl.textContent = stats;
       const cue = tokens[pos.i];
+      const waiting = cue.t === 'pause' || cue.t === 'hold';
+      const status = cue.t === 'hold' ? 'Hold · ' + cue.s : cue.t === 'pause' ? 'Pause · ' + Math.ceil(dur[pos.i] * (1 - pos.f)) + 's' : '';
+      if (cueStatus.textContent !== status) cueStatus.textContent = status;
+      if (cueStatus.hidden === waiting) { cueStatus.hidden = !waiting; layout(); }
       const left = holding ? 'Hold · press Play' : cue.t === 'pause' ? 'Pause · ' + Math.ceil(dur[pos.i] * (1 - pos.f)) + 's' : '~' + F.formatDuration(total - timeNow()) + ' left';
       if (left !== shownLeft) { leftEl.textContent = left; shownLeft = left; }
     }
