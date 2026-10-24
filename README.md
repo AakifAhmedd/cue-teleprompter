@@ -97,8 +97,8 @@ safe: scripts and backups are plain text. Nothing is uploaded to a server.
 
 Settings offers **Word by word** (the default) and **Centre guide**. Word mode
 keeps the current word underlined. Centre guide puts the reading marker halfway
-down the screen, inside a taller reading window sized for roughly three typical
-sentences where space permits. It scrolls continuously through punctuation;
+down the screen, inside a reading window four rendered text rows tall by default. Choose three,
+four or five rows in Settings or Aa; short screens cap the height to keep controls clear. It scrolls continuously through punctuation;
 word mode keeps its configured punctuation pauses. Text above the window is
 dimmed and blurred; upcoming text is softer and fades into full contrast as it
 enters. Explicit `[pause]` and `[hold]` cues work in both modes. Use the **Aa** sheet to compare the modes

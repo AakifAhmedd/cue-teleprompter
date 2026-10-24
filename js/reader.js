@@ -37,6 +37,7 @@
 
   function open(host, rec, onExit) {
     let focusMode = S.settings().focusMode === 'line' ? 'line' : 'word';
+    let guideRows = [3, 4, 5].includes(S.settings().guideRows) ? S.settings().guideRows : 4;
     const marker = () => focusMode === 'line' ? 0.5 : MARKER;
     const pacing = F.pacing(S.settings().pacing);
     const sc = F.parse(rec.text, pacing);
@@ -77,6 +78,7 @@
       '<div class="sheet" data-el="sheet" hidden>' +
         '<label class="sheet__row"><span>Text size</span><span class="mono" data-el="sizeVal"></span></label>' +
         '<input aria-label="Text size" type="range" min="' + SIZE_MIN + '" max="' + SIZE_MAX + '" step="2" data-el="size">' +
+        '<label class="sheet__focus">Guide height<select aria-label="Guide height" data-el="guideRows"><option value="3">3 rows</option><option value="4">4 rows</option><option value="5">5 rows</option></select></label>' +
         '<label class="sheet__focus">Reading focus<select aria-label="Reading focus" data-el="focus"><option value="word">Word by word</option><option value="line">Centre guide</option></select></label>' +
       '</div>' +
       '<dialog class="agenda" aria-labelledby="agenda-title"><div class="toolbar"><h2 id="agenda-title">Agenda</h2><button class="btn btn--small" data-act="close-agenda">Close</button></div>' +
@@ -157,15 +159,7 @@
         lineOf[i] = lines.length - 1;
         forceNew = !isWord;
       }
-      // Approximate three sentences, bounded by the actual space between controls.
-      let sentenceLines = 0;
-      starts.forEach((start, k) => {
-        let end = k + 1 < starts.length ? starts[k + 1] - 1 : n - 1;
-        while (end > start && tokens[end].t !== 'w') end--;
-        sentenceLines += lineOf[end] - lineOf[start] + 1;
-      });
-      const typicalLines = starts.length ? sentenceLines / starts.length : 1;
-      const targetHeight = lineHeight * Math.max(3, Math.min(8, typicalLines * 3));
+      const targetHeight = lineHeight * guideRows;
       const strip = root_.querySelector('.reader__section');
       const header = root_.querySelector('.reader__top');
       const bar = root_.querySelector('.reader__bar');
@@ -498,6 +492,12 @@
 
     /* ---------- reading focus and text size ---------- */
     const focusInput = root_.querySelector('[data-el="focus"]');
+    const rowsInput = root_.querySelector('[data-el="guideRows"]');
+    rowsInput.value = guideRows;
+    rowsInput.addEventListener('change', () => {
+      guideRows = Number(rowsInput.value);
+      layout(); render(); S.setSettings({ guideRows });
+    });
     function applyFocus(value, persist) {
       const tokenElapsed = n ? pos.f * dur[pos.i] : 0;
       focusMode = value === 'line' ? 'line' : 'word';
@@ -569,7 +569,7 @@
         document.removeEventListener('visibilitychange', onVisibility);
       },
       // exposed for tests
-      _state: () => ({ pos: { ...pos }, playing, ended, holding, focusMode, countdown, elapsed, total, lines: lines.length, wpm, adj })
+      _state: () => ({ pos: { ...pos }, playing, ended, holding, focusMode, guideRows, countdown, elapsed, total, lines: lines.length, wpm, adj })
     };
   }
 

@@ -181,6 +181,7 @@
         <label>Full stop / sentence pause (seconds)<input id="sentence-pause" type="number" min="0" max="5" step="0.05" required></label>
         <label>Reading focus<select id="reading-focus"><option value="word">Word by word</option><option value="line">Centre guide</option></select></label>
         <p class="muted">Word by word highlights each word and uses your punctuation pauses. Centre guide scrolls continuously through a taller reading window, blurring earlier text and softening what comes next. Explicit pause and hold cues still work. Switch from Aa while reading.</p>
+        <label>Centre guide height<select id="guide-rows"><option value="3">3 rows</option><option value="4">4 rows</option><option value="5">5 rows</option></select></label>
         <label>Countdown before starting<select id="start-delay"><option value="0">Off</option><option value="3">3 seconds</option><option value="5">5 seconds</option><option value="10">10 seconds</option></select></label>
         <p class="muted">In word mode, punctuation pauses add extra time after each word and stay the same when WPM changes. Sentence pauses also apply to ! and ?. Centre guide ignores these automatic pauses.</p>
       </form>`));
@@ -191,6 +192,7 @@
       form.querySelector('#sentence-pause').value = value.sentencePause;
     };
     fill(saved);
+    form.querySelector('#guide-rows').value = [3, 4, 5].includes(S.settings().guideRows) ? S.settings().guideRows : 4;
     form.querySelector('#reading-focus').value = S.settings().focusMode === 'line' ? 'line' : 'word';
     form.querySelector('#start-delay').value = [3, 5, 10].includes(S.settings().startDelay) ? S.settings().startDelay : 0;
     form.querySelector('#punctuation').checked = saved.punctuation;
@@ -205,7 +207,7 @@
         punctuation: form.querySelector('#punctuation').checked,
         commaPause: Number(form.querySelector('#comma-pause').value),
         sentencePause: Number(form.querySelector('#sentence-pause').value)
-      }), startDelay: Number(form.querySelector('#start-delay').value), focusMode: form.querySelector('#reading-focus').value });
+      }), startDelay: Number(form.querySelector('#start-delay').value), focusMode: form.querySelector('#reading-focus').value, guideRows: Number(form.querySelector('#guide-rows').value) });
       toast(S.isSessionOnly() ? 'Defaults saved only for this session' : 'Delivery defaults saved');
       location.hash = '#/';
     };

@@ -245,7 +245,7 @@ const { chromium } = require('playwright');
       const stage = await page.locator('.reader__stage').boundingBox();
       assert.ok(Math.abs(guide.y + guide.height / 2 - (stage.y + stage.height / 2)) < 1, 'guide is centred');
       const rowHeight = await page.locator('.reader__text').evaluate(e => parseFloat(getComputedStyle(e).lineHeight));
-      if (size.height >= 800) assert.ok(guide.height >= rowHeight * 3, 'guide holds multiple reading lines');
+      if (size.height >= 800) assert.ok(Math.abs(guide.height - rowHeight * 4) < 1, 'guide defaults to four text rows');
       assert.match(await page.locator('.reader__fade--past').evaluate(e => getComputedStyle(e).backdropFilter), /blur\(3px\)/);
       const past = await page.locator('.reader__fade--past').boundingBox();
       const future = await page.locator('.reader__fade--next').boundingBox();
@@ -255,6 +255,12 @@ const { chromium } = require('playwright');
       await step(1.2);
       const snapshot = await state();
       await page.getByRole('button', { name: 'Text size' }).click();
+      if (size.height >= 800) {
+        await page.getByLabel('Guide height', { exact: true }).selectOption('3');
+        assert.ok(Math.abs((await page.locator('.reader__guide').boundingBox()).height - rowHeight * 3) < 1);
+        assert.deepEqual((await state()).pos, snapshot.pos);
+        await page.getByLabel('Guide height', { exact: true }).selectOption('4');
+      }
       await page.getByLabel('Reading focus', { exact: true }).selectOption('word');
       assert.equal((await state()).pos.i, snapshot.pos.i);
       assert.equal((await state()).playing, true);
