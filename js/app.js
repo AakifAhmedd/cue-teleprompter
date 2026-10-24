@@ -64,12 +64,12 @@
     const list = el('<div class="card-list"></div>');
     for (const rec of scripts) {
       const sc = F.parse(rec.text, S.settings().pacing);
-      const secs = F.estimateSeconds(sc.tokens, sc.tempo, S.settings().pacing);
+      const secs = F.estimateSeconds(sc.tokens, sc.tempo, S.settings().pacing, Number.isFinite(rec.adj) ? rec.adj : 0);
       const card = el(`
         <article class="card" data-id="${esc(rec.id)}">
           <div class="card__main" role="button" tabindex="0">
             <h3>${esc(sc.title)}</h3>
-            <p class="muted">${plural(sc.words, 'word')} · ~${F.formatDuration(secs)} at ${sc.tempo} WPM · ${shortDate(rec.updatedAt)}</p>
+            <p class="muted">${plural(sc.words, 'word')} · ~${F.formatDuration(secs)} at ${F.clampTempo(sc.tempo + (Number.isFinite(rec.adj) ? rec.adj : 0))} WPM · ${shortDate(rec.updatedAt)}</p>
           </div>
           <div class="card__actions">
             <button class="btn btn--small" data-act="edit">Edit</button>
@@ -128,6 +128,7 @@
         <label class="check-row"><input id="punctuation" type="checkbox"> Pause at punctuation</label>
         <label>Comma pause (seconds)<input id="comma-pause" type="number" min="0" max="2" step="0.05" required></label>
         <label>Full stop / sentence pause (seconds)<input id="sentence-pause" type="number" min="0" max="5" step="0.05" required></label>
+        <label>Countdown before starting<select id="start-delay"><option value="0">Off</option><option value="3">3 seconds</option><option value="5">5 seconds</option><option value="10">10 seconds</option></select></label>
         <p class="muted">Pauses are extra time after each word and stay the same when WPM changes. Sentence pauses also apply to ! and ?. Blank lines and headings keep a brief breather.</p>
       </form>`));
     const form = view.querySelector('#delivery');
@@ -137,6 +138,7 @@
       form.querySelector('#sentence-pause').value = value.sentencePause;
     };
     fill(saved);
+    form.querySelector('#start-delay').value = [3, 5, 10].includes(S.settings().startDelay) ? S.settings().startDelay : 0;
     form.querySelector('#punctuation').checked = saved.punctuation;
     form.querySelector('#profile').onchange = e => {
       if (presets[e.target.value]) { fill(presets[e.target.value]); form.querySelector('#punctuation').checked = true; }
@@ -149,7 +151,7 @@
         punctuation: form.querySelector('#punctuation').checked,
         commaPause: Number(form.querySelector('#comma-pause').value),
         sentencePause: Number(form.querySelector('#sentence-pause').value)
-      }) });
+      }), startDelay: Number(form.querySelector('#start-delay').value) });
       toast(S.isSessionOnly() ? 'Defaults saved only for this session' : 'Delivery defaults saved');
       location.hash = '#/';
     };

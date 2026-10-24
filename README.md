@@ -63,3 +63,17 @@ must be on its own line:
 
 Script duration includes fixed pauses and excludes unpredictable waiting at holds.
 Punctuation pauses keep the text still during the extra pause time.
+
+## Agenda and getting ready
+
+The reader's **Agenda** button lists the script's `##` headings. Opening the list
+pauses reading; selecting a section moves there safely, ready for Play. Keys 1–9
+jump to the first nine sections. Page Down moves to the next heading; Page Up
+returns to the current heading or the previous one if already at its start.
+These deliberate jumps pause playback, while touches on the reading text remain
+inert during playback.
+
+Settings offers an optional 3, 5 or 10 second countdown on first Play and Restart.
+Pause cancels the countdown; ordinary pause/resume after starting is immediate.
+The reader also shows word count and active reading time, excluding countdowns,
+manual pauses and holds. Remaining time follows the script's pace and timed cues.
