@@ -525,3 +525,34 @@ body.is-reading .storage-warning { position: fixed; z-index: 20; top: calc(64px 
   .quick-editor > p:not([role="status"]), .quick-editor .composer__help { display: none; }
   .quick-editor .composer__palette { margin-block: 3px; padding: 4px; }
 }
+
+/* ---------- UX polish ---------- */
+/* Titles stay on one line so the toolbar never wraps around them. */
+.toolbar h1 { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* Library: New script is the main action, so it gets its own full-width row on phones. */
+@media (max-width: 560px) {
+  #new-script { order: 1; flex: 1 1 100%; padding: 14px 16px; font-size: 17px; }
+}
+/* Rarely used actions: quiet footer under the scripts. */
+.library-foot { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 28px; padding-top: 16px; border-top: 1px solid var(--line); }
+.library-foot .btn { background: transparent; box-shadow: none; color: var(--muted); font-weight: 500; font-size: 13px; }
+.library-foot .btn:disabled { opacity: 0.35; }
+
+/* Settings: Save stays reachable while scrolling a long form. */
+.settings > .toolbar {
+  position: sticky; top: var(--safe-top); z-index: 5;
+  margin: -20px -18px 14px; padding: 12px 18px;
+  background: var(--bg); border-bottom: 1px solid var(--line);
+}
+
+/* Format guide: the one thing you come here for is at the top. */
+.format-guide__copy { width: 100%; margin-bottom: 14px; padding: 13px 16px; }
+
+/* Reader: controls must never sit under other panels, and fading them must not
+   remove the scrim that keeps scrolling text from colliding with them. */
+.sheet { z-index: 6; }
+.reader__top > * { transition: opacity 0.4s; }
+.reader.is-idle .reader__top { opacity: 1; }
+.reader.is-idle .reader__top > * { opacity: 0.25; }
+@media (prefers-reduced-motion: reduce) { .reader__top > * { transition: none; } }

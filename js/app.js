@@ -69,14 +69,15 @@
 
     const tools = el(`<div class="library-tools">
       <input type="search" class="search" id="script-search" aria-label="Search scripts" placeholder="Search scripts…">
-      <div class="editor-tools"><button class="btn btn--small" id="tutorial">Tutorial</button><button class="btn btn--small" id="backup">Back up scripts</button><label class="btn btn--small">Import backup<input type="file" id="restore" accept=".json,application/json" hidden></label></div>
       <p class="muted search-status" id="search-status" role="status"></p>
     </div>`);
     view.appendChild(tools);
-    tools.querySelector('#tutorial').onclick = () => { const rec = S.addTutorial(CueTutorial.text); location.hash = '#/read/' + rec.id; };
-    tools.querySelector('#backup').disabled = !scripts.length;
-    tools.querySelector('#backup').onclick = () => download(B.encode(S.list()), 'cue-scripts.json', 'application/json');
-    tools.querySelector('#restore').onchange = async e => {
+    // Occasional actions sit quietly below the scripts so search and the list come first.
+    const foot = el(`<div class="library-foot"><button class="btn btn--small" id="tutorial">Tutorial</button><button class="btn btn--small" id="backup">Back up scripts</button><label class="btn btn--small">Import backup<input type="file" id="restore" accept=".json,application/json" hidden></label></div>`);
+    foot.querySelector('#tutorial').onclick = () => { const rec = S.addTutorial(CueTutorial.text); location.hash = '#/read/' + rec.id; };
+    foot.querySelector('#backup').disabled = !scripts.length;
+    foot.querySelector('#backup').onclick = () => download(B.encode(S.list()), 'cue-scripts.json', 'application/json');
+    foot.querySelector('#restore').onchange = async e => {
       const file = e.target.files[0]; if (!file) return;
       try {
         if (file.size > B.MAX_BYTES) throw new Error('Backup is too large (maximum 10 MB).');
@@ -98,6 +99,7 @@
     };
     if (!scripts.length) {
       view.appendChild(el(`<div class="empty-state"><h2>No scripts yet</h2><p>Tap New script, then paste or open a script file.</p></div>`));
+      view.appendChild(foot);
       return;
     }
     const list = el('<div class="card-list"></div>');
@@ -139,6 +141,7 @@
       list.appendChild(card);
     }
     view.appendChild(list);
+    view.appendChild(foot);
   }
 
   const FORMAT_EXAMPLE = '---\ntitle: Club Night\ntempo: 140\n---\n\n## Welcome\nGood evening, *everyone*.\n[pause 2]\n[tempo 170]\nLet’s welcome our first guest!\n[hold Applause]\n[tempo reset]\n[note Hand over the microphone]\nThank you for joining us.';
@@ -146,13 +149,14 @@
   function renderFormat() {
     view.replaceChildren(el(`<section class="format-guide">
       <div class="toolbar"><button class="btn btn--small" id="back">← Back</button><h1>Script format</h1></div>
+      <button class="btn btn--primary format-guide__copy" id="copy-prompt">Copy AI prompt</button>
       <p>Plain text works. Add optional headings, *emphasis*, and cues on separate lines:</p>
       <dl><dt>[tempo 170] / [tempo reset]</dt><dd>Change pace until another tempo cue. Reset uses the header or your saved default. + / − still adjust all sections together.</dd>
       <dt>[pause 3]</dt><dd>Wait exactly three seconds, regardless of WPM. Positive decimal seconds up to 3600 work too.</dd>
       <dt>[hold Applause]</dt><dd>Stop until you press Play. The label is optional.</dd>
       <dt>[note Hand over microphone]</dt><dd>Show an unspoken presenter note with a short breather.</dd></dl>
       <p class="muted">Duration estimates include timed pauses and exclude time spent waiting at holds.</p>
-      <pre>${esc(FORMAT_EXAMPLE)}</pre><button class="btn btn--primary" id="copy-prompt">Copy AI prompt</button>
+      <pre>${esc(FORMAT_EXAMPLE)}</pre>
       <textarea class="editor prompt" id="ai-prompt" aria-label="AI prompt" readonly></textarea>
     </section>`));
     view.querySelector('#back').onclick = () => { location.hash = '#/'; };
