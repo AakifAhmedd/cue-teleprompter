@@ -353,7 +353,7 @@ const { chromium } = require('playwright');
 
     // Focus modes preserve place and pace; duration estimates follow their different punctuation behavior.
     await page.getByRole('button', { name: 'Settings', exact: true }).click();
-    await page.locator('#reading-focus').selectOption('line');
+    await page.getByRole('radio', { name: /Centre guide/ }).check();
     await page.getByRole('button', { name: 'Save', exact: true }).click();
     await page.waitForSelector('#new-script');
     await page.reload();
@@ -580,6 +580,37 @@ const { chromium } = require('playwright');
     assert.equal((await state()).playing, false);
     assert.match(await page.evaluate(id => CueStore.get(id).text, visualId), /\[pause 4\]/);
     await exit();
+    await page.setViewportSize({ width: 1280, height: 720 });
+
+    // Personal greetings are local, persist alongside reading defaults, and render as text.
+    await page.getByRole('button', { name: 'Settings', exact: true }).click();
+    await page.locator('#display-name').fill('Aakif');
+    await page.locator('#welcome-message').fill('Welcome back');
+    assert.equal(await page.locator('#welcome-preview').textContent(), 'Welcome back, Aakif');
+    for (const width of [1440, 390, 320]) {
+      await page.setViewportSize({ width, height: 900 });
+      assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true, 'compact settings fit screen');
+      if (width === 1440) {
+        const formBox = await page.locator('#delivery').boundingBox();
+        assert.ok(formBox.y + formBox.height <= 900, 'desktop settings fit one screen');
+      }
+      await page.screenshot({ path: '/private/tmp/cue-settings-compact-' + width + '.png', fullPage: true });
+    }
+    await page.getByRole('button', { name: 'Save', exact: true }).click();
+    await page.waitForSelector('#new-script');
+    await page.reload();
+    assert.equal(await page.locator('.library-greeting').textContent(), 'Welcome back, Aakif');
+    await page.getByRole('button', { name: 'Settings', exact: true }).click();
+    await page.locator('#display-name').fill('<img src=x onerror=alert(1)>');
+    await page.getByRole('button', { name: 'Save', exact: true }).click();
+    await page.waitForSelector('#new-script');
+    assert.equal(await page.locator('.library-greeting img').count(), 0);
+    assert.match(await page.locator('.library-greeting').textContent(), /<img src=x/);
+    await page.getByRole('button', { name: 'Settings', exact: true }).click();
+    await page.locator('#display-name').fill(''); await page.locator('#welcome-message').fill('');
+    await page.getByRole('button', { name: 'Save', exact: true }).click();
+    await page.waitForSelector('#new-script');
+    assert.equal(await page.locator('.library-greeting').count(), 0);
     await page.setViewportSize({ width: 1280, height: 720 });
 
     // User defaults persist, override plain-text fallback, and toggle punctuation off.

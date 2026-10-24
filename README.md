@@ -46,6 +46,8 @@ session; copy your scripts before closing the tab.
 ## Delivery defaults
 
 Open **Settings** in the library to set your default WPM and punctuation pauses.
+Pace, reading and welcome settings share a compact desktop overview, with paired
+controls on phones and visual previews for both reading modes.
 The starting pace is 140 WPM, with an extra 0.25 seconds at commas and 0.5 seconds
 at sentence endings. Pauses can be switched off or adjusted independently of WPM.
 Standard, Formal and Lively profiles provide starting points; saving keeps your
@@ -190,3 +192,11 @@ lines. Existing files and backups keep the same format. Changes remain drafts
 until Save; paused Quick edit also offers Discard. Invalid visual cue values
 must be corrected before saving. Scripts changed in another tab are not silently
 overwritten by either editor.
+
+## Personal welcome
+
+Settings offers an optional **Your name** and **Welcome message**, with a live
+preview. The library combines them, for example “Welcome, Aakif”. Leave the name
+and custom message empty to keep the plain library heading. Personalization is
+local to this browser, preserved alongside delivery settings, and never added to
+script files or library backups.

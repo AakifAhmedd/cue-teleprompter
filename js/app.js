@@ -56,6 +56,10 @@
   /* ---------- library ---------- */
   function renderLibrary() {
     const scripts = S.list().filter(rec => rec.id !== 'cue-tutorial');
+    const personal = S.settings();
+    const displayName = typeof personal.displayName === 'string' ? personal.displayName.trim().slice(0, 60) : '';
+    const welcomeMessage = typeof personal.welcomeMessage === 'string' ? personal.welcomeMessage.trim().slice(0, 120) : '';
+    const greeting = (welcomeMessage || 'Welcome') + (displayName ? ', ' + displayName : '');
     view.replaceChildren(el(`
       <div class="toolbar">
         <h1>Scripts</h1>
@@ -63,6 +67,7 @@
         <button class="btn btn--small" id="settings">Settings</button>
         <button class="btn btn--primary" id="new-script">New script</button>
       </div>`));
+    if (displayName || welcomeMessage && welcomeMessage !== 'Welcome') view.firstElementChild.before(el('<p class="library-greeting">' + esc(greeting) + '</p>'));
     view.querySelector('#format').onclick = () => { location.hash = '#/format'; };
     view.querySelector('#settings').onclick = () => { location.hash = '#/settings'; };
     view.querySelector('#new-script').onclick = () => { location.hash = '#/new'; };
@@ -73,6 +78,8 @@
     </div>`);
     view.appendChild(tools);
     const practice = el('<button class="tutorial-entry" id="tutorial" aria-label="Tutorial"><span class="tutorial-entry__icon" aria-hidden="true">▷</span><span><strong>Tutorial</strong><small>Warm up with Hamlet and try CUE’s controls</small></span><span aria-hidden="true">→</span></button>');
+    const savedTutorial = S.get('cue-tutorial');
+    if (savedTutorial && savedTutorial.text !== CueTutorial.text) practice.querySelector('small').textContent = 'Continue your saved tutorial and try CUE’s controls';
     practice.onclick = () => { const rec = S.addTutorial(CueTutorial.text); location.hash = '#/read/' + rec.id; };
     view.appendChild(practice);
     // Backup actions share a separate, quiet menu below the library.
@@ -193,8 +200,9 @@ Keep valid existing CUE cues. Convert clearly marked stage directions to notes o
 
   /* ---------- saved delivery defaults ---------- */
   function renderSettings() {
-    const visual = F.readerLayout(S.settings());
-    const saved = F.pacing(S.settings().pacing);
+    const preferences = S.settings();
+    const visual = F.readerLayout(preferences);
+    const saved = F.pacing(preferences.pacing);
     const presets = {
       standard: { defaultTempo: 140, commaPause: 0.25, sentencePause: 0.5 },
       formal: { defaultTempo: 110, commaPause: 0.3, sentencePause: 0.7 },
@@ -202,20 +210,35 @@ Keep valid existing CUE cues. Convert clearly marked stage directions to notes o
     };
     view.replaceChildren(el(`
       <form id="delivery" class="settings">
-        <div class="toolbar"><button type="button" class="btn btn--small" id="back">← Back</button><h1>Delivery defaults</h1><button class="btn btn--primary btn--small">Save</button></div>
-        <p class="muted">Used for scripts without a tempo header. Script tempo headers take priority. Changes apply the next time you open a script.</p>
-        <label>Starting profile<select id="profile"><option value="custom">Your settings</option><option value="standard">Standard</option><option value="formal">Formal / introductions</option><option value="lively">Lively / hosting</option></select></label>
-        <label>Default pace (WPM)<input id="default-tempo" type="number" min="60" max="300" step="1" required></label>
-        <label class="check-row"><input id="punctuation" type="checkbox"> Pause at punctuation (word mode)</label>
-        <label>Comma pause (seconds)<input id="comma-pause" type="number" min="0" max="2" step="0.05" required></label>
-        <label>Full stop / sentence pause (seconds)<input id="sentence-pause" type="number" min="0" max="5" step="0.05" required></label>
-        <label>Reading focus<select id="reading-focus"><option value="word">Word by word</option><option value="line">Centre guide</option></select></label>
-        <p class="muted">Word by word highlights each word and uses your punctuation pauses. Centre guide scrolls continuously through a taller reading window, blurring earlier text and softening what comes next. Explicit pause and hold cues still work. Switch from Aa while reading.</p>
-        <label>Reading width <output id="width-value"></output><input aria-label="Reading width" id="reading-width" type="range" min="50" max="100" step="5"></label>
-        <label>Line spacing <output id="spacing-value"></output><input aria-label="Line spacing" id="line-spacing" type="range" min="1.2" max="2.2" step="0.1"></label>
-        <label>Centre guide height<select id="guide-rows"><option value="3">3 rows</option><option value="4">4 rows</option><option value="5">5 rows</option></select></label>
-        <label>Countdown before starting<select id="start-delay"><option value="0">Off</option><option value="3">3 seconds</option><option value="5">5 seconds</option><option value="10">10 seconds</option></select></label>
-        <p class="muted">In word mode, punctuation pauses add extra time after each word and stay the same when WPM changes. Sentence pauses also apply to ! and ?. Centre guide ignores these automatic pauses.</p>
+        <div class="toolbar"><button type="button" class="btn btn--small" id="back">← Back</button><h1>Settings</h1><button class="btn btn--primary btn--small">Save</button></div>
+        <p class="settings-intro">Your defaults, ready for the next script. A script’s tempo takes priority.</p>
+        <div class="settings-panels">
+          <section class="settings-panel settings-panel--pace" aria-labelledby="pace-title"><h2 id="pace-title">Pace & pauses</h2>
+            <div class="settings-grid">
+              <label>Starting profile<select id="profile"><option value="custom">Your settings</option><option value="standard">Standard</option><option value="formal">Formal / introductions</option><option value="lively">Lively / hosting</option></select></label>
+              <label><span>Default pace <small class="settings-unit">WPM</small></span><input id="default-tempo" type="number" min="60" max="300" step="1" required></label>
+              <label class="check-row settings-span"><input id="punctuation" type="checkbox"> Pause at punctuation <span class="settings-unit">word mode</span></label>
+              <label>Comma pause <span class="settings-unit">seconds</span><input id="comma-pause" type="number" min="0" max="2" step="0.05" required></label>
+              <label>Full stop pause <span class="settings-unit">seconds</span><input id="sentence-pause" type="number" min="0" max="5" step="0.05" required></label>
+            </div><p class="settings-hint">Full stops, ! and ? use the sentence pause. Centre guide keeps scrolling through punctuation.</p>
+          </section>
+          <section class="settings-panel settings-panel--reading" aria-labelledby="reading-title"><h2 id="reading-title">Reading</h2>
+            <fieldset class="focus-choices"><legend>Reading focus</legend>
+              <label class="focus-choice"><input type="radio" name="reading-focus" value="word"><span class="focus-choice__body"><span class="focus-preview focus-preview--word" aria-hidden="true"><span>Hello,</span><span><b>everyone.</b></span></span><strong>Word by word</strong><small>Follow each word.</small></span></label>
+              <label class="focus-choice"><input type="radio" name="reading-focus" value="line"><span class="focus-choice__body"><span class="focus-preview focus-preview--line" aria-hidden="true"><span>Hello,</span><b>▸ everyone.</b><span>Welcome.</span></span><strong>Centre guide</strong><small>Smooth, steady scroll.</small></span></label>
+            </fieldset>
+            <div class="settings-grid">
+              <label>Reading width <output id="width-value"></output><input aria-label="Reading width" id="reading-width" type="range" min="50" max="100" step="5"></label>
+              <label>Line spacing <output id="spacing-value"></output><input aria-label="Line spacing" id="line-spacing" type="range" min="1.2" max="2.2" step="0.1"></label>
+              <label>Guide height<select id="guide-rows"><option value="3">3 rows</option><option value="4">4 rows</option><option value="5">5 rows</option></select></label>
+              <label>Start countdown<select id="start-delay"><option value="0">Off</option><option value="3">3 seconds</option><option value="5">5 seconds</option><option value="10">10 seconds</option></select></label>
+            </div><p class="settings-hint">Timed pauses and holds work in both modes. Aa adjusts the view while reading.</p>
+          </section>
+          <section class="settings-panel settings-panel--welcome" aria-labelledby="welcome-title"><h2 id="welcome-title">Your welcome</h2>
+            <div class="settings-grid"><label>Your name<input id="display-name" type="text" maxlength="60" autocomplete="given-name" placeholder="Your name"></label><label>Welcome message<input id="welcome-message" type="text" maxlength="120" placeholder="Welcome"></label></div>
+            <p class="welcome-preview" aria-live="polite" id="welcome-preview"></p><p class="settings-hint">Your name follows the message. Saved only on this device.</p>
+          </section>
+        </div>
       </form>`));
     const form = view.querySelector('#delivery');
     const fill = value => {
@@ -229,9 +252,19 @@ Keep valid existing CUE cues. Convert clearly marked stage directions to notes o
     const visualValues = () => { form.querySelector('#width-value').textContent = form.querySelector('#reading-width').value + '%'; form.querySelector('#spacing-value').textContent = Number(form.querySelector('#line-spacing').value).toFixed(1) + '×'; };
     form.querySelector('#reading-width').oninput = visualValues; form.querySelector('#line-spacing').oninput = visualValues; visualValues();
     form.querySelector('#guide-rows').value = [3, 4, 5].includes(S.settings().guideRows) ? S.settings().guideRows : 3;
-    form.querySelector('#reading-focus').value = S.settings().focusMode === 'line' ? 'line' : 'word';
+    form.querySelector('input[name="reading-focus"][value="' + (preferences.focusMode === 'line' ? 'line' : 'word') + '"]').checked = true;
     form.querySelector('#start-delay').value = [3, 5, 10].includes(S.settings().startDelay) ? S.settings().startDelay : 0;
     form.querySelector('#punctuation').checked = saved.punctuation;
+    form.querySelector('#display-name').value = typeof preferences.displayName === 'string' ? preferences.displayName.slice(0, 60) : '';
+    form.querySelector('#welcome-message').value = typeof preferences.welcomeMessage === 'string' ? preferences.welcomeMessage.slice(0, 120) : 'Welcome';
+    const welcomePreview = () => {
+      const name = form.querySelector('#display-name').value.trim();
+      const message = form.querySelector('#welcome-message').value.trim() || 'Welcome';
+      form.querySelector('#welcome-preview').textContent = message + (name ? ', ' + name : '');
+    };
+    form.querySelector('#display-name').oninput = welcomePreview;
+    form.querySelector('#welcome-message').oninput = welcomePreview;
+    welcomePreview();
     form.querySelector('#profile').onchange = e => {
       if (presets[e.target.value]) { fill(presets[e.target.value]); form.querySelector('#punctuation').checked = true; }
     };
@@ -243,7 +276,7 @@ Keep valid existing CUE cues. Convert clearly marked stage directions to notes o
         punctuation: form.querySelector('#punctuation').checked,
         commaPause: Number(form.querySelector('#comma-pause').value),
         sentencePause: Number(form.querySelector('#sentence-pause').value)
-      }), startDelay: Number(form.querySelector('#start-delay').value), focusMode: form.querySelector('#reading-focus').value, guideRows: Number(form.querySelector('#guide-rows').value), ...F.readerLayout({ readingWidth: Number(form.querySelector('#reading-width').value), lineSpacing: Number(form.querySelector('#line-spacing').value) }) });
+      }), startDelay: Number(form.querySelector('#start-delay').value), displayName: form.querySelector('#display-name').value.trim(), welcomeMessage: form.querySelector('#welcome-message').value.trim(), focusMode: form.querySelector('input[name="reading-focus"]:checked').value, guideRows: Number(form.querySelector('#guide-rows').value), ...F.readerLayout({ readingWidth: Number(form.querySelector('#reading-width').value), lineSpacing: Number(form.querySelector('#line-spacing').value) }) });
       toast(S.isSessionOnly() ? 'Defaults saved only for this session' : 'Delivery defaults saved');
       location.hash = '#/';
     };
@@ -353,6 +386,7 @@ Keep valid existing CUE cues. Convert clearly marked stage directions to notes o
     if (current) { current.destroy(); current = null; }
     document.body.classList.remove('is-reading');
     const [name, id] = location.hash.replace(/^#\/?/, '').split('/');
+    view.classList.toggle('view--settings', name === 'settings');
     window.scrollTo(0, 0);
     if (name === 'format') return renderFormat();
     if (name === 'settings') return renderSettings();
