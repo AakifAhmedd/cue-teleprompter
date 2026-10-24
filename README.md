@@ -15,3 +15,27 @@ python3 -m http.server 8000
 ```
 
 Versioning rules for every change are in [VERSIONING.md](VERSIONING.md).
+
+## Checks
+
+```bash
+node tests/format.test.js
+node tests/store.test.js
+```
+
+Browser regressions use Playwright as a development-only tool; the app has no
+runtime dependencies. With Playwright and Chromium available:
+
+```bash
+node tests/browser.test.js
+```
+
+To use an installed Chrome browser instead, set `CUE_BROWSER_CHANNEL=chrome`.
+The browser tests start and stop their own local server. They check reading
+tempo, keyboard controls, phone layouts, wake-lock cleanup, storage failures,
+and offline upgrades under the same subdirectory path used by GitHub Pages.
+
+Open the app online once before relying on offline use. Updates keep the last
+complete offline copy until the new copy is fully cached. If browser storage is
+blocked or full, a warning explains that edits will only last for the current
+session; copy your scripts before closing the tab.

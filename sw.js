@@ -1,27 +1,39 @@
-/* CUE service worker — network-first with a short timeout, then cache.
-   A flaky venue connection must never delay opening the app on stage, so
-   after 3s we serve the cached copy while the network fetch keeps updating
-   the cache in the background. Only this app's own files are cached. */
+/* CUE service worker. Each asset token gets a complete offline shell.
+   Online navigation never overwrites that shell with HTML whose scripts
+   might not be cached yet. A flaky venue connection falls back after 3s. */
 const SCOPE = new URL(self.registration.scope);
-const CACHE = 'cue-shell-v1:' + SCOPE.pathname;
+const PREFIX = 'cue-shell-v2:' + SCOPE.pathname + ':';
+const RELEASE = new URL(self.location.href).searchParams.get('v');
+const CACHE = PREFIX + (RELEASE || 'initial');
 const NETWORK_TIMEOUT_MS = 3000;
 
 self.addEventListener('install', (e) => {
   e.waitUntil((async () => {
-    const cache = await caches.open(CACHE);
     const response = await fetch('./index.html', { cache: 'no-store' });
     if (!response.ok) throw new Error('Could not load the app shell');
-    const html = await response.text();
+    const html = await response.clone().text();
     const assets = [...html.matchAll(/(?:src|href)="((?:css|js|icons)\/[^"]+)"/g)].map(m => m[1]);
-    await cache.addAll(['./', './index.html', './VERSION', './manifest.webmanifest',
+    // A deployment changing during installation must not create a mixed shell.
+    if (RELEASE && assets.some(path => /^(css|js)\//.test(path) && new URL(path, SCOPE).searchParams.get('v') !== RELEASE)) {
+      throw new Error('App assets changed during installation');
+    }
+    const cache = await caches.open(CACHE);
+    await cache.addAll(['./VERSION', './manifest.webmanifest',
       './icons/icon-192.png', './icons/icon-512.png', ...assets]);
+    await cache.put('./index.html', response.clone());
+    await cache.put('./', response);
     await self.skipWaiting();
   })());
 });
 
 self.addEventListener('activate', (e) => {
-  // CacheStorage is shared with other apps on this origin; never delete theirs.
-  e.waitUntil(self.clients.claim());
+  e.waitUntil((async () => {
+    // CacheStorage is shared with other apps on this origin; only clean up CUE's scope.
+    const keys = await caches.keys();
+    await Promise.all(keys.filter(key => key !== CACHE &&
+      (key.startsWith(PREFIX) || key === 'cue-shell-v1:' + SCOPE.pathname)).map(key => caches.delete(key)));
+    await self.clients.claim();
+  })());
 });
 
 self.addEventListener('fetch', (e) => {
@@ -29,27 +41,23 @@ self.addEventListener('fetch', (e) => {
   if (req.method !== 'GET') return;
   const url = new URL(req.url);
   if (url.origin !== SCOPE.origin || !url.pathname.startsWith(SCOPE.pathname)) return;
-  // VERSION is requested with a changing query; cache it under one key.
-  const key = url.pathname === SCOPE.pathname + 'VERSION' ? url.origin + url.pathname : req;
+  const isVersion = url.pathname === SCOPE.pathname + 'VERSION';
+  const key = isVersion ? url.origin + url.pathname : req;
 
   e.respondWith((async () => {
     const cache = await caches.open(CACHE).catch(() => null);
-    const network = fetch(req).then(async (res) => {
-      if (cache && res.ok) { try { await cache.put(key, res.clone()); } catch (_) { /* best-effort */ } }
-      return res;
-    });
-    e.waitUntil(network.catch(() => {}));
-
-    const timeout = new Promise((resolve) => setTimeout(() => resolve(null), NETWORK_TIMEOUT_MS));
-    const fresh = await Promise.race([network.catch(() => null), timeout]);
-    if (fresh) return fresh;
-
-    const hit = cache && await cache.match(key);
-    if (hit) return hit;
-    if (cache && req.mode === 'navigate') {
-      const shell = await cache.match('./index.html');
-      if (shell) return shell;
-    }
-    return network; // nothing cached: wait for the network (or fail honestly)
+    let hit = cache && await cache.match(key);
+    if (!hit && cache && req.mode === 'navigate') hit = await cache.match('./index.html');
+    // Tokened assets are immutable within a release. Only navigation and VERSION need the network.
+    if (hit && req.mode !== 'navigate' && !isVersion) return hit;
+    const network = fetch(req).catch(() => null);
+    let timer;
+    try {
+      const timeout = new Promise(resolve => { timer = setTimeout(() => resolve(null), NETWORK_TIMEOUT_MS); });
+      const fresh = await Promise.race([network, timeout]);
+      if (fresh && fresh.ok) return fresh;
+      if (hit) return hit;
+      return fresh || await network || Response.error();
+    } finally { clearTimeout(timer); }
   })());
 });

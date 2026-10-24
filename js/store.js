@@ -14,9 +14,11 @@
   }
 
   function write(key, value) {
+    const wasSessionOnly = Object.keys(memory).length > 0;
     const raw = JSON.stringify(value);
     try { localStorage.setItem(key, raw); delete memory[key]; }
     catch (_) { memory[key] = raw; }
+    if (wasSessionOnly !== (Object.keys(memory).length > 0)) root.dispatchEvent(new Event('cue:storage'));
   }
 
   function newId() {
@@ -24,6 +26,7 @@
   }
 
   const Store = {
+    isSessionOnly() { return Object.keys(memory).length > 0; },
     list() {
       return read(KEY_SCRIPTS, []).sort((a, b) => b.updatedAt - a.updatedAt);
     },

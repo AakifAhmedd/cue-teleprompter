@@ -189,6 +189,7 @@ body.is-reading .app-header { display: none; }
   font-size: var(--reader-size, clamp(30px, 8.4vw, 64px));
   line-height: 1.5;
   font-weight: 600;
+  overflow-wrap: anywhere;
   will-change: transform;
 }
 .reader__text .w { transition: opacity 0.25s; }
@@ -283,10 +284,10 @@ body.is-reading .app-header { display: none; }
 .play-btn:disabled { opacity: 0.4; }
 
 /* ---------- reader controls: tempo, sentence skip ---------- */
-.reader__ctl { display: flex; align-items: center; justify-content: center; gap: 12px; }
+.reader__ctl { display: flex; align-items: center; justify-content: center; gap: clamp(4px, 2vw, 12px); }
 .ctl-btn {
   appearance: none;
-  width: 50px; height: 50px;
+  width: clamp(44px, 12vw, 50px); height: clamp(44px, 12vw, 50px);
   display: grid; place-items: center;
   padding: 0;
   color: var(--text);
@@ -318,3 +319,6 @@ body.is-reading .app-header { display: none; }
 }
 .sheet__row { display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 14px; color: var(--muted); }
 .sheet input[type="range"] { width: 100%; accent-color: var(--accent); }
+
+.storage-warning { margin: 12px 18px; padding: 12px; border: 1px solid var(--danger); border-radius: var(--radius-s); background: var(--bg); font-size: 14px; }
+body.is-reading .storage-warning { position: fixed; z-index: 20; top: calc(64px + var(--safe-top)); left: 14px; right: 14px; margin: 0; }

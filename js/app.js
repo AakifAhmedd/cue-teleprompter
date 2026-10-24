@@ -5,6 +5,8 @@
   const F = CueFormat;
   const S = CueStore;
   const view = document.getElementById('view');
+  // The worker URL must change with the assets so every release is precached offline.
+  const assetQuery = new URL(document.currentScript.src).search;
 
   /* ---------- helpers ---------- */
   function esc(s) {
@@ -28,6 +30,18 @@
     clearTimeout(toastTimer);
     toastTimer = setTimeout(() => host.classList.remove('is-on'), 2200);
   }
+
+  function updateStorageNotice() {
+    let notice = document.getElementById('storage-warning');
+    if (!notice) {
+      notice = el('<aside id="storage-warning" class="storage-warning" role="alert" hidden></aside>');
+      notice.textContent = 'Browser storage is unavailable. Changes are kept only for this session. Copy your scripts before closing this tab.';
+      view.before(notice);
+    }
+    notice.hidden = !S.isSessionOnly();
+  }
+  window.addEventListener('cue:storage', updateStorageNotice);
+  updateStorageNotice();
 
   /* ---------- library ---------- */
   function renderLibrary() {
@@ -59,6 +73,9 @@
           </div>
         </article>`);
       card.querySelector('.card__main').onclick = () => { location.hash = '#/read/' + rec.id; };
+      card.querySelector('.card__main').onkeydown = e => {
+        if (e.code === 'Enter' || e.code === 'Space') { e.preventDefault(); if (!e.repeat) location.hash = '#/read/' + rec.id; }
+      };
       card.querySelector('[data-act="edit"]').onclick = () => { location.hash = '#/edit/' + rec.id; };
       card.querySelector('[data-act="delete"]').onclick = () => {
         if (confirm('Delete "' + sc.title + '"?')) { S.remove(rec.id); renderLibrary(); }
@@ -119,7 +136,7 @@
     };
     saveBtn.onclick = () => {
       S.save({ id: rec ? rec.id : undefined, text: ta.value });
-      toast('Saved');
+      toast(S.isSessionOnly() ? 'Saved only for this session' : 'Saved');
       location.hash = '#/';
     };
     view.querySelector('#paste').onclick = async () => {
@@ -176,7 +193,7 @@
   function registerServiceWorker() {
     if (!('serviceWorker' in navigator)) return;
     window.addEventListener('load', () => {
-      navigator.serviceWorker.register('sw.js').catch(() => { /* not fatal */ });
+      navigator.serviceWorker.register('sw.js' + assetQuery, { updateViaCache: 'none' }).catch(() => { /* not fatal */ });
     });
   }
 

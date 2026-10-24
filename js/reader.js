@@ -277,6 +277,7 @@
 
     function play() {
       if (n === 0) return;
+      drag = null;   // a gesture begun while paused cannot scrub after playback starts
       if (ended) { pos = { i: 0, f: 0 }; ended = false; shownI = -1; }
       playing = true;
       last = performance.now();
@@ -300,12 +301,12 @@
     let drag = null;
     stage.addEventListener('pointerdown', (e) => {
       wake();
-      if (playing) return;   // text is inert while playing so a stray touch can't move you
+      if (playing || !n || !e.isPrimary || e.button !== 0) return;   // text is inert while playing
       drag = { startClientY: e.clientY, startY: yAt(pos.i, pos.f), moved: false, target: e.target };
       stage.setPointerCapture(e.pointerId);
     });
     stage.addEventListener('pointermove', (e) => {
-      if (!drag) return;
+      if (!drag || playing) return;
       const dy = e.clientY - drag.startClientY;
       if (!drag.moved && Math.abs(dy) < 6) return;
       drag.moved = true;
@@ -318,7 +319,7 @@
       if (!drag) return;
       const d = drag;
       drag = null;
-      if (!d.moved) {
+      if (!d.moved && e.type !== 'pointercancel' && !playing) {
         const hit = d.target.closest && d.target.closest('[data-i]');
         if (hit) { pos = { i: +hit.dataset.i, f: 0 }; ended = false; setPlayIcon(); render(); }
       }
@@ -345,12 +346,19 @@
       else if (act === 'size') sheet.hidden = !sheet.hidden;
     });
     function onKey(e) {
-      if (e.code === 'Space') { e.preventDefault(); toggle(); }
+      if (e.defaultPrevented || e.altKey || e.ctrlKey || e.metaKey) return;
+      if (e.target.closest('input, textarea, select, [contenteditable="true"]')) return;
+      if (e.code === 'Space') {
+        // Buttons already activate on Space; handling it here would also toggle playback.
+        if (e.target.closest('button')) return;
+        e.preventDefault();
+        if (!e.repeat) toggle();
+      }
       else if (e.code === 'Escape') exit();
       else if (e.code === 'ArrowUp') { e.preventDefault(); changeTempo(TEMPO_STEP); }
       else if (e.code === 'ArrowDown') { e.preventDefault(); changeTempo(-TEMPO_STEP); }
-      else if (e.code === 'ArrowRight') skipSentence(1);
-      else if (e.code === 'ArrowLeft') skipSentence(-1);
+      else if (e.code === 'ArrowRight') { e.preventDefault(); skipSentence(1); }
+      else if (e.code === 'ArrowLeft') { e.preventDefault(); skipSentence(-1); }
     }
     document.addEventListener('keydown', onKey);
     function onVisibility() {
@@ -374,12 +382,18 @@
 
     /* ---------- keep the screen on while the reader is open ---------- */
     let wakeLock = null;
+    let requestingWake = false;
+    let destroyed = false;
     async function holdScreen() {
       try {
-        if (!('wakeLock' in navigator) || wakeLock) return;
-        wakeLock = await navigator.wakeLock.request('screen');
-        wakeLock.addEventListener('release', () => { wakeLock = null; });
+        if (!('wakeLock' in navigator) || wakeLock || requestingWake || destroyed || document.hidden) return;
+        requestingWake = true;
+        const lock = await navigator.wakeLock.request('screen');
+        if (destroyed || document.hidden) { await lock.release(); return; }
+        wakeLock = lock;
+        lock.addEventListener('release', () => { if (wakeLock === lock) wakeLock = null; });
       } catch (_) { /* unsupported or denied: the screen may dim, nothing else breaks */ }
+      finally { requestingWake = false; }
     }
 
     const ro = new ResizeObserver(() => { layout(); render(); });
@@ -400,6 +414,7 @@
 
     return {
       destroy() {
+        destroyed = true;
         playing = false;
         savePos();
         cancelAnimationFrame(raf);
