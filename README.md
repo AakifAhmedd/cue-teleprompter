@@ -130,20 +130,20 @@ changed or reset in their new order. Reordering does not rewrite your words.
 
 ## Built-in tutorial
 
-A removable **CUE Tutorial — five-minute practice** appears once in each library,
-including existing installations upgrading to this feature. Its spoken text is
-Abraham Lincoln's public-domain Second Inaugural Address (4 March 1865), sourced
-from the [U.S. National Park Service transcript](https://www.nps.gov/linc/learn/historyculture/lincoln-second-inaugural.htm).
-Typography was normalized; chapter headings, unspoken CUE instructions and two
-short timed pauses were added.
-At its 150 WPM header pace it runs for about five minutes; your focus mode and
-punctuation settings affect the estimate. The historical text is practice
-material, not a suggested script for an event.
+A removable **CUE Tutorial — The Last Broadcast** appears once in each library.
+It is an original modern villain monologue, with short sentences, conversational
+punctuation and a little theatrical menace. It contains no movie dialogue.
+At its 150 WPM header pace, it takes roughly three to five minutes depending on
+your focus mode and punctuation settings. Six chapters and unspoken notes introduce
+CUE's controls; two timed pauses offer a chance to practise holding the room.
 
-The tutorial ships inside the app and works offline. Editing it is respected;
-deleting it prevents automatic reappearance. The **Tutorial** library button
-opens your existing copy or adds a fresh copy if you removed it. Other scripts
-and personal settings are preserved.
+The tutorial ships inside the app and works offline. An untouched copy of the
+previous Lincoln sample upgrades automatically, starting at the new script's
+normal pace. Edited copies and other scripts stay as they are. Deleting the
+tutorial prevents automatic reappearance. The **Tutorial** library button opens
+your existing copy or adds a fresh copy if you removed it. Personal settings are
+preserved. The previous public-domain speech came from the
+[U.S. National Park Service transcript](https://www.nps.gov/linc/learn/historyculture/lincoln-second-inaugural.htm).
 
 Timed pauses and holds use a stationary status badge rather than a separate row in
 the scrolling text. This keeps the same scroll position at entry and exit while

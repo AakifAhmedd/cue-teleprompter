@@ -353,7 +353,7 @@
     });
   }
 
-  S.ensureTutorial(CueTutorial.text);
+  S.ensureTutorial(CueTutorial.text, CueTutorial.legacyText);
   route();
   showVersion();
   registerServiceWorker();

@@ -1,11 +1,12 @@
-/* Public-domain speech: Abraham Lincoln, Second Inaugural Address, 4 March 1865.
+/* CUE tutorial: original modern practice fiction, with an exact legacy sample for safe upgrades.
+   Legacy public-domain speech: Abraham Lincoln, Second Inaugural Address, 4 March 1865.
    Source: U.S. National Park Service transcript, retrieved 24 October 2026.
    https://www.nps.gov/linc/learn/historyculture/lincoln-second-inaugural.htm
    Speech wording retained; typography normalized. CUE headings and unspoken notes added. */
 (function (root) {
   'use strict';
   const source = 'https://www.nps.gov/linc/learn/historyculture/lincoln-second-inaugural.htm';
-  const text = `---
+  const legacyText = `---
 title: CUE Tutorial — five-minute practice
 tempo: 150
 ---
@@ -47,7 +48,70 @@ Yet, if God wills that it continue until all the wealth piled by the bondsman's 
 [pause 2]
 With malice toward none with charity for all with firmness in the right as God gives us to see the right let us strive on to finish the work we are in to bind up the nation's wounds, to care for him who shall have borne the battle and for his widow and his orphan — to do all which may achieve and cherish a just and lasting peace among ourselves and with all nations.
 `;
-  const api = { text, source };
+  // Original CUE practice fiction. Legacy text is retained only to recognize an untouched sample.
+  const text = `---
+title: CUE Tutorial — The Last Broadcast
+tempo: 150
+---
+[note An original fictional villain monologue for a three-to-five-minute warm-up. Read only the speech; headings and notes are unspoken.]
+
+## Take the microphone
+[note Press Play. The big button or Space pauses. Touches only move the text while paused.]
+Good evening, everyone. Please, stay where you are. The doors are open, the trains are running, and nobody is in danger. I know that is an unusual way to begin a citywide announcement. It has been an unusual day.
+
+You have probably noticed the lights. Every tower, every billboard, every little screen above a station platform. They all went dark at exactly nine. Then my face appeared. I admit, the timing took some work. The expression on the mayor's face made it worthwhile.
+
+Before anyone calls this an attack, take a breath. I would hate for us to start with a misunderstanding.
+
+## Find your voice
+[note Aa switches Word by word and Centre guide. Try the three-row guide, reading width and line spacing.]
+For twenty years, I kept this city moving. I fixed the systems you never saw. When a hospital needed power, I found it. When a tunnel flooded, I sent the pumps. When the council wanted someone to blame, suddenly everyone knew my name.
+
+They gave me a medal. A small one, in a box that would not close properly. Then they sold my department, cut the staff, and asked me to smile for the photograph.
+
+I smiled. You can still find the picture. Look closely at my hands. That is how you can tell I had already made a decision.
+
+## Let the silence work
+[note A timed pause holds the scroll still. It resumes from the same place. Keep your eyes on the guide.]
+Now, somewhere across town, a very determined person is putting on a jacket and reaching for a set of keys. You know who you are. You are thinking that you can get here, pull a cable, and make everything normal again.
+
+[pause 2]
+Take your time. Seriously. Wear comfortable shoes.
+
+There is no secret machine under my desk. There is no giant red button. I learned a long time ago that people only guard things that look expensive. The ordinary things, the boring things, they leave those to people like me. Password resets. Maintenance schedules. The little box behind the reception desk.
+
+## Turn up the confidence
+[note Plus and minus adjust by 5 WPM. Agenda jumps pause playback. Reorder lets you move whole chapters.]
+I know what you expect next. A demand for money, perhaps. A helicopter on the roof. A speech about how nobody understood me.
+
+Money? I have seen the city's accounts. There isn't enough. And helicopters are loud. I have worked too hard on this microphone to shout over an engine.
+
+What I want is much simpler. Tomorrow morning, the council will sit in this room. The cleaners will sit beside them. So will the nurses, the drivers, and the people who keep the water safe. Everyone gets a microphone. Everyone gets the same amount of time.
+
+For once, the people who usually leave before the cameras arrive will be on the screen.
+
+## Make the threat quiet
+[note While paused, open Aa → Quick edit, or press E. Save your changes and continue. Discard keeps the saved script.]
+Of course, someone will say that I have no right to make that decision. Fair point. I wasn't elected. Neither was the company that bought your water supply, but they seem very comfortable making decisions for all of us.
+
+That is the trouble with a locked room. After a while, the people inside begin to believe the lock is an argument.
+
+[pause 2]
+It isn't. It is a piece of metal.
+
+And I have spent my entire life learning how things open.
+
+## Leave them listening
+[note Back to scripts returns to your library. More exports or duplicates a script. Tutorial restores a fresh copy after deletion.]
+So, to our visitor with the keys: come upstairs. The lift is working. I fixed it this afternoon. Bring your best speech, and I will listen. I am curious to hear what normal is supposed to mean.
+
+To everyone else, make some tea. Call someone you trust. Tomorrow may be uncomfortable, and I would like you well rested.
+
+Oh, and one last thing. The lights come back on in ten seconds. Watch the old clock above the station.
+
+I repaired that, too.
+`;
+  const api = { text, legacyText, legacySource: source };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.CueTutorial = api;
 })(typeof self !== 'undefined' ? self : this);

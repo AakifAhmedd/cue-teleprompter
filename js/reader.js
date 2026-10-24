@@ -310,6 +310,16 @@
       sections.forEach((section, k) => { if (section.i <= pos.i) chapter = k; });
       const offset = chapter >= 0 ? parts.prefix.length + parts.sections.slice(0, chapter).join('').length : 0;
       editText.focus(); editText.setSelectionRange(offset, offset);
+      // Textareas do not consistently scroll a programmatic caret into view.
+      const mirror = document.createElement('div'), caret = document.createElement('span');
+      mirror.style.cssText = 'position:absolute;visibility:hidden;white-space:pre-wrap;overflow-wrap:break-word;';
+      const style = getComputedStyle(editText);
+      for (const property of ['font', 'lineHeight', 'letterSpacing', 'padding', 'boxSizing', 'tabSize']) mirror.style[property] = style[property];
+      mirror.style.width = editText.clientWidth + 'px';
+      mirror.textContent = editText.value.slice(0, offset); caret.textContent = '\u200b';
+      mirror.appendChild(caret); quickEditor.appendChild(mirror);
+      editText.scrollTop = Math.max(0, caret.offsetTop - editText.clientHeight / 3);
+      mirror.remove();
     }
     function saveQuickEdit() {
       const edited = F.parse(editText.value, pacing);

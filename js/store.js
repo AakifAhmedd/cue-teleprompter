@@ -34,7 +34,12 @@
       all.push(rec); write(KEY_SCRIPTS, all);
       return rec;
     },
-    ensureTutorial(text) {
+    ensureTutorial(text, previousText) {
+      const existing = this.get('cue-tutorial');
+      // Upgrade only the exact bundled sample; never replace a person's edits or deletion.
+      if (existing && previousText && existing.text === previousText) {
+        this.save({ id: existing.id, text, adj: 0 });
+      }
       if (this.settings().tutorialAdded) return;
       this.addTutorial(text);
       this.setSettings({ tutorialAdded: true });
