@@ -63,7 +63,7 @@ must be on its own line:
 - `[note Hand over microphone]` displays an unspoken presenter note.
 
 Script duration includes fixed pauses and excludes unpredictable waiting at holds.
-Punctuation pauses keep the text still during the extra pause time.
+Word mode keeps the text still during the extra punctuation pause time. Centre guide ignores automatic punctuation pauses; explicit stage cues still apply.
 
 ## Agenda and getting ready
 
@@ -97,9 +97,13 @@ safe: scripts and backups are plain text. Nothing is uploaded to a server.
 
 Settings offers **Word by word** (the default) and **Centre guide**. Word mode
 keeps the current word underlined. Centre guide puts the reading marker halfway
-down the screen, with a subtle fixed band and softer text above and below it.
-Scrolling and cue timing stay the same. Use the **Aa** sheet to compare the modes
-while reading; changing focus preserves your position and pace and is remembered
+down the screen, inside a taller reading window sized for roughly three typical
+sentences where space permits. It scrolls continuously through punctuation;
+word mode keeps its configured punctuation pauses. Text above the window is
+dimmed and blurred; upcoming text is softer and fades into full contrast as it
+enters. Explicit `[pause]` and `[hold]` cues work in both modes. Use the **Aa** sheet to compare the modes
+while reading; changing focus preserves your place and pace, updates duration
+estimates to match the mode, and is remembered
 on this device. The short-screen layout keeps playback controls below the guide.
 
 ## Visible event agenda
@@ -110,5 +114,5 @@ A `+ hold` label flags open-ended waiting. Phone and tablet layouts keep the tex
 full-width and show a compact current/next-section strip; tapping it opens the
 agenda. All agenda markers come from the script's `##` headings, follow playback
 and update when pace changes. Selecting a marker still pauses before moving.
-The stored scripts, punctuation timing, local backups and playback controls are
-unchanged by this layout update.
+The stored scripts, local backups and playback controls are unchanged by this
+layout update.

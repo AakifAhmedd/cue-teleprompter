@@ -83,4 +83,10 @@ for (const cue of ['[tempo 0]', '[tempo 301]', '[tempo fast]', '[pause -1]', '[p
   assert.ok(s.warnings.some(w => /invalid cue/.test(w)), cue);
 }
 assert.strictEqual(F.parse('Say [hold] aloud').words, 3);
+const savedPacing = { defaultTempo: 155, punctuation: true, commaPause: 0.25, sentencePause: 0.5 };
+s = F.parse('Hello, friend.');
+assert.strictEqual(F.estimateSeconds(s.tokens, 120, F.playbackPacing(savedPacing, 'word')), 1.75);
+assert.strictEqual(F.estimateSeconds(s.tokens, 120, F.playbackPacing(savedPacing, 'line')), 1);
+assert.strictEqual(savedPacing.punctuation, true, 'centre mode does not overwrite word-mode settings');
+assert.strictEqual(F.tokenSeconds({ t: 'pause', seconds: 3 }, 120, F.playbackPacing(savedPacing, 'line')), 3);
 console.log('format tests passed');

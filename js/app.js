@@ -5,6 +5,7 @@
   const F = CueFormat;
   const S = CueStore;
   const B = CueBackup;
+  const playbackPacing = () => F.playbackPacing(S.settings().pacing, S.settings().focusMode);
   const view = document.getElementById('view');
   // The worker URL must change with the assets so every release is precached offline.
   const assetQuery = new URL(document.currentScript.src).search;
@@ -101,7 +102,7 @@
     const list = el('<div class="card-list"></div>');
     for (const rec of scripts) {
       const sc = F.parse(rec.text, S.settings().pacing);
-      const secs = F.estimateSeconds(sc.tokens, sc.tempo, S.settings().pacing, Number.isFinite(rec.adj) ? rec.adj : 0);
+      const secs = F.estimateSeconds(sc.tokens, sc.tempo, playbackPacing(), Number.isFinite(rec.adj) ? rec.adj : 0);
       const card = el(`
         <article class="card" data-id="${esc(rec.id)}">
           <div class="card__main" role="button" tabindex="0">
@@ -175,13 +176,13 @@
         <p class="muted">Used for scripts without a tempo header. Script tempo headers take priority. Changes apply the next time you open a script.</p>
         <label>Starting profile<select id="profile"><option value="custom">Your settings</option><option value="standard">Standard</option><option value="formal">Formal / introductions</option><option value="lively">Lively / hosting</option></select></label>
         <label>Default pace (WPM)<input id="default-tempo" type="number" min="60" max="300" step="1" required></label>
-        <label class="check-row"><input id="punctuation" type="checkbox"> Pause at punctuation</label>
+        <label class="check-row"><input id="punctuation" type="checkbox"> Pause at punctuation (word mode)</label>
         <label>Comma pause (seconds)<input id="comma-pause" type="number" min="0" max="2" step="0.05" required></label>
         <label>Full stop / sentence pause (seconds)<input id="sentence-pause" type="number" min="0" max="5" step="0.05" required></label>
         <label>Reading focus<select id="reading-focus"><option value="word">Word by word</option><option value="line">Centre guide</option></select></label>
-        <p class="muted">Word by word underlines the current word. Centre guide keeps a fixed reading band in the middle and dims the text outside it. You can also switch from Aa while reading.</p>
+        <p class="muted">Word by word highlights each word and uses your punctuation pauses. Centre guide scrolls continuously through a taller reading window, blurring earlier text and softening what comes next. Explicit pause and hold cues still work. Switch from Aa while reading.</p>
         <label>Countdown before starting<select id="start-delay"><option value="0">Off</option><option value="3">3 seconds</option><option value="5">5 seconds</option><option value="10">10 seconds</option></select></label>
-        <p class="muted">Pauses are extra time after each word and stay the same when WPM changes. Sentence pauses also apply to ! and ?. Blank lines and headings keep a brief breather.</p>
+        <p class="muted">In word mode, punctuation pauses add extra time after each word and stay the same when WPM changes. Sentence pauses also apply to ! and ?. Centre guide ignores these automatic pauses.</p>
       </form>`));
     const form = view.querySelector('#delivery');
     const fill = value => {
@@ -243,7 +244,7 @@
 
     function refresh() {
       const sc = F.parse(ta.value, S.settings().pacing);
-      const secs = F.estimateSeconds(sc.tokens, sc.tempo, S.settings().pacing);
+      const secs = F.estimateSeconds(sc.tokens, sc.tempo, playbackPacing());
       let html = ta.value.trim()
         ? `<strong>${esc(sc.title)}</strong> · ${plural(sc.words, 'word')} · ~${F.formatDuration(secs)} at ${sc.tempo} WPM`
         : '<span class="muted">Nothing here yet</span>';

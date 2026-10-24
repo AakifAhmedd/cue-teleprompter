@@ -224,7 +224,7 @@ const { chromium } = require('playwright');
     await exit();
     await page.evaluate(() => CueStore.setSettings({ startDelay: 0 }));
 
-    // Saved focus mode and the in-reader switch preserve timing and position.
+    // Focus modes preserve place and pace; duration estimates follow their different punctuation behavior.
     await page.getByRole('button', { name: 'Settings', exact: true }).click();
     await page.locator('#reading-focus').selectOption('line');
     await page.getByRole('button', { name: 'Save', exact: true }).click();
@@ -244,19 +244,28 @@ const { chromium } = require('playwright');
       const guide = await page.locator('.reader__guide').boundingBox();
       const stage = await page.locator('.reader__stage').boundingBox();
       assert.ok(Math.abs(guide.y + guide.height / 2 - (stage.y + stage.height / 2)) < 1, 'guide is centred');
+      const rowHeight = await page.locator('.reader__text').evaluate(e => parseFloat(getComputedStyle(e).lineHeight));
+      if (size.height >= 800) assert.ok(guide.height >= rowHeight * 3, 'guide holds multiple reading lines');
+      assert.match(await page.locator('.reader__fade--past').evaluate(e => getComputedStyle(e).backdropFilter), /blur\(3px\)/);
+      const past = await page.locator('.reader__fade--past').boundingBox();
+      const future = await page.locator('.reader__fade--next').boundingBox();
+      assert.ok(Math.abs(past.y + past.height - guide.y) < 1, 'past blur ends at guide edge');
+      assert.ok(Math.abs(future.y - guide.y - guide.height) < 1, 'future fade begins below guide');
       await page.getByRole('button', { name: 'Play', exact: true }).click();
       await step(1.2);
       const snapshot = await state();
       await page.getByRole('button', { name: 'Text size' }).click();
       await page.getByLabel('Reading focus', { exact: true }).selectOption('word');
-      assert.deepEqual((await state()).pos, snapshot.pos);
+      assert.equal((await state()).pos.i, snapshot.pos.i);
       assert.equal((await state()).playing, true);
-      assert.equal((await state()).total, snapshot.total);
+      assert.ok((await state()).total > snapshot.total, 'word mode includes punctuation pauses');
       assert.equal((await state()).wpm, snapshot.wpm);
       await page.getByRole('button', { name: 'Text size' }).click();
       await page.screenshot({ path: '/private/tmp/cue-focus-word-' + size.width + '.png' });
       await page.getByRole('button', { name: 'Text size' }).click();
       await page.getByLabel('Reading focus', { exact: true }).selectOption('line');
+      assert.equal((await state()).pos.i, snapshot.pos.i);
+      assert.ok(Math.abs((await state()).total - snapshot.total) < 1e-8);
       await page.getByRole('button', { name: 'Text size' }).click();
       await page.screenshot({ path: '/private/tmp/cue-focus-line-' + size.width + '.png' });
       if (size.width === 1440) {
@@ -278,6 +287,44 @@ const { chromium } = require('playwright');
       assert.ok(controls.y >= guide.y + guide.height, 'controls stay below focus band');
       await exit();
     }
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.evaluate(() => CueStore.setSettings({ focusMode: 'line', fontSize: 36 }));
+    const continuous = '---\ntitle: A Community Evening\ntempo: 120\n---\nWelcome, everyone. Today we celebrate every volunteer in our community. Your work has made a lasting difference to many people. Thank you for bringing such kindness and energy into this room. We will hear from our president and welcome our next guest. There is a wonderful evening ahead for all of us.';
+    await open(continuous);
+    assert.equal((await state()).total, await page.evaluate(text => CueFormat.parse(text).words * 0.5, continuous));
+    await page.getByRole('button', { name: 'Play', exact: true }).click();
+    await step(0.3);
+    let priorY = null;
+    for (let k = 0; k < 40; k++) {
+      await step(0.05);
+      const y = await page.locator('.reader__text').evaluate(e => new DOMMatrixReadOnly(e.style.transform).m42);
+      if (priorY !== null) assert.ok(y < priorY, 'centre guide keeps moving through commas and full stops');
+      priorY = y;
+    }
+    await step(9.7);
+    await page.screenshot({ path: '/private/tmp/cue-centre-refined-390.png' });
+    await exit();
+    // Even a one-line script can be scrubbed within its last line while paused.
+    await open('---\ntempo: 120\n---\none two three four');
+    await page.getByRole('button', { name: 'Play', exact: true }).click();
+    await step(1);
+    await page.getByRole('button', { name: 'Pause', exact: true }).click();
+    await page.mouse.move(160, 250); await page.mouse.down();
+    await page.mouse.move(160, 240); await page.mouse.up();
+    assert.equal((await state()).pos.i, 2, 'small scrub does not jump to the end of the final line');
+    await exit();
+    await open('---\ntempo: 120\n---\none\n[pause 1]\ntwo\n[hold Applause]\nthree.');
+    await page.getByRole('button', { name: 'Play', exact: true }).click();
+    await step(0.6);
+    const explicitPause = await page.locator('.reader__text').getAttribute('style');
+    await step(0.2);
+    assert.equal(await page.locator('.reader__text').getAttribute('style'), explicitPause, 'explicit pause still stops centre guide');
+    await step(1.4);
+    assert.equal((await state()).holding, true);
+    await page.getByRole('button', { name: 'Resume', exact: true }).click();
+    await step(0.51);
+    assert.equal((await state()).ended, true);
+    await exit();
     await page.evaluate(() => CueStore.setSettings({ focusMode: 'word', fontSize: null }));
     await page.setViewportSize({ width: 390, height: 844 });
 

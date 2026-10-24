@@ -66,7 +66,7 @@
     const sidebar = sections.length ? '<aside class="reader__agenda" aria-label="Event agenda markers"><div class="reader__agenda-head"><h2>Event agenda</h2><span class="mono">' + sections.length + ' sections</span></div><nav aria-label="Script sections">' + sectionList + '</nav><p class="reader__agenda-hint">Select a section to pause and jump.</p></aside>' : '';
     const sectionStrip = sections.length ? '<button class="reader__section" data-act="agenda" aria-label="Open event agenda"><span class="reader__section-number mono" data-el="sectionNumber"></span><span class="reader__section-content"><span data-el="sectionTitle"></span><span class="reader__section-next" data-el="sectionNext"></span></span><span aria-hidden="true">⌄</span></button>' : '';
     root_.innerHTML = sidebar + sectionStrip +
-      '<div class="reader__stage"><div class="reader__guide" aria-hidden="true"></div><div class="reader__text">' + html + '<div class="reader__end">end of script</div></div></div>' +
+      '<div class="reader__stage"><div class="reader__guide" aria-hidden="true"></div><div class="reader__text">' + html + '<div class="reader__end">end of script</div></div><div class="reader__fade reader__fade--past" aria-hidden="true"></div><div class="reader__fade reader__fade--next" aria-hidden="true"></div></div>' +
       '<div class="reader__top">' +
         '<button class="icon-btn" data-act="exit" aria-label="Back to scripts">' + ICON.back + '</button>' +
         '<div class="reader__title">' + esc(sc.title) + '</div>' +
@@ -121,8 +121,9 @@
 
     function buildTimeline() {
       let t = 0, moving = 0;
+      const timing = F.playbackPacing(pacing, focusMode);
       for (let i = 0; i < n; i++) {
-        dur[i] = F.tokenSeconds(tokens[i], wpmAt(i), pacing);
+        dur[i] = F.tokenSeconds(tokens[i], wpmAt(i), timing);
         T[i] = t;
         t += dur[i];
         motion[i] = moving;
@@ -138,9 +139,11 @@
     /* ---------- layout: where each line sits ---------- */
     let lines = [];            // { start, y }
     let lineOf = new Int32Array(n);
+    let lineHeight = 0;
 
     function layout() {
       lines = [];
+      lineHeight = parseFloat(getComputedStyle(text).lineHeight);
       let curY = -1e9;
       let forceNew = true;
       for (let i = 0; i < n; i++) {
@@ -154,13 +157,34 @@
         lineOf[i] = lines.length - 1;
         forceNew = !isWord;
       }
+      // Approximate three sentences, bounded by the actual space between controls.
+      let sentenceLines = 0;
+      starts.forEach((start, k) => {
+        let end = k + 1 < starts.length ? starts[k + 1] - 1 : n - 1;
+        while (end > start && tokens[end].t !== 'w') end--;
+        sentenceLines += lineOf[end] - lineOf[start] + 1;
+      });
+      const typicalLines = starts.length ? sentenceLines / starts.length : 1;
+      const targetHeight = lineHeight * Math.max(3, Math.min(8, typicalLines * 3));
+      const strip = root_.querySelector('.reader__section');
+      const header = root_.querySelector('.reader__top');
+      const bar = root_.querySelector('.reader__bar');
+      const topEdge = Math.max(header.offsetHeight, strip && strip.offsetHeight ? strip.offsetTop + strip.offsetHeight : 0) + 12;
+      const firstReadout = statsEl.offsetHeight ? statsEl : tempoEl;
+      const bottomEdge = bar.offsetTop + firstReadout.offsetTop - 12;
+      const halfRoom = Math.max(16, Math.min(stage.clientHeight / 2 - topEdge, bottomEdge - stage.clientHeight / 2));
+      root_.style.setProperty('--guide-half', Math.min(targetHeight / 2, halfRoom) + 'px');
+    }
+
+    function nextLine(k) {
+      return lines[k + 1] || (focusMode === 'line' ? { start: n, y: lines[k].y + lineHeight } : null);
     }
 
     function yAt(i, f) {
       if (tokens[i].t === 'pause' || tokens[i].t === 'hold') return lines[lineOf[i]].y;
       const k = lineOf[i];
       const line = lines[k];
-      const next = lines[k + 1];
+      const next = nextLine(k);
       if (!next) return line.y;
       const t0 = motion[line.start];
       const span = motion[next.start] - t0;
@@ -173,7 +197,7 @@
       if (!lines.length) return 0;
       if (y <= lines[0].y) return 0;
       for (let k = 0; k < lines.length; k++) {
-        const next = lines[k + 1];
+        const next = nextLine(k);
         if (!next) return total;
         if (y < next.y) {
           const frac = (y - lines[k].y) / (next.y - lines[k].y);
@@ -475,7 +499,10 @@
     /* ---------- reading focus and text size ---------- */
     const focusInput = root_.querySelector('[data-el="focus"]');
     function applyFocus(value, persist) {
+      const tokenElapsed = n ? pos.f * dur[pos.i] : 0;
       focusMode = value === 'line' ? 'line' : 'word';
+      buildTimeline();
+      if (n && dur[pos.i] > 0) pos.f = Math.min(1, tokenElapsed / dur[pos.i]);
       root_.classList.toggle('reader--line', focusMode === 'line');
       root_.style.setProperty('--reading-line', marker() * 100 + '%');
       focusInput.value = focusMode;
@@ -516,6 +543,7 @@
     /* ---------- init ---------- */
     buildTimeline();
     updateTempo();
+    if (n) updateReadouts();
     const savedSize = S.settings().fontSize;
     if (savedSize) root_.style.setProperty('--reader-size', savedSize + 'px');
     layout();
