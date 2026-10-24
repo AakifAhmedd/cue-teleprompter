@@ -51,7 +51,7 @@
 
     /* ---------- DOM ---------- */
     const root_ = document.createElement('div');
-    root_.className = 'reader is-paused';
+    root_.className = 'reader is-paused' + (sections.length ? ' reader--sections' : '');
     let html = '';
     tokens.forEach((t, i) => {
       if (t.t === 'w') html += '<span class="w' + (t.em ? ' em' : '') + '" data-i="' + i + '">' + esc(t.s) + '</span> ';
@@ -59,7 +59,13 @@
       else if (t.t === 'h') html += '<div class="sect" data-i="' + i + '">' + esc(t.s) + '</div>';
       else html += '<div class="gap" data-i="' + i + '"></div>';
     });
-    root_.innerHTML =
+    function sectionButton(section, k) {
+      return '<button class="btn agenda__item" data-section="' + k + '"><span class="agenda__number" aria-hidden="true">' + String(k + 1).padStart(2, '0') + '</span><span class="agenda__content"><span class="agenda__label">' + esc(section.title) + '</span><span class="agenda__meta"><span data-section-state></span><span class="mono" data-section-time="' + k + '"></span></span></span></button>';
+    }
+    const sectionList = sections.map(sectionButton).join('');
+    const sidebar = sections.length ? '<aside class="reader__agenda" aria-label="Event agenda markers"><div class="reader__agenda-head"><h2>Event agenda</h2><span class="mono">' + sections.length + ' sections</span></div><nav aria-label="Script sections">' + sectionList + '</nav><p class="reader__agenda-hint">Select a section to pause and jump.</p></aside>' : '';
+    const sectionStrip = sections.length ? '<button class="reader__section" data-act="agenda" aria-label="Open event agenda"><span class="reader__section-number mono" data-el="sectionNumber"></span><span class="reader__section-content"><span data-el="sectionTitle"></span><span class="reader__section-next" data-el="sectionNext"></span></span><span aria-hidden="true">⌄</span></button>' : '';
+    root_.innerHTML = sidebar + sectionStrip +
       '<div class="reader__stage"><div class="reader__guide" aria-hidden="true"></div><div class="reader__text">' + html + '<div class="reader__end">end of script</div></div></div>' +
       '<div class="reader__top">' +
         '<button class="icon-btn" data-act="exit" aria-label="Back to scripts">' + ICON.back + '</button>' +
@@ -75,7 +81,7 @@
       '</div>' +
       '<dialog class="agenda" aria-labelledby="agenda-title"><div class="toolbar"><h2 id="agenda-title">Agenda</h2><button class="btn btn--small" data-act="close-agenda">Close</button></div>' +
         '<p class="muted">Choose a section, then press Play. Shortcuts: 1–9, Page Up / Page Down.</p>' +
-        sections.map((section, k) => '<button class="btn agenda__item" data-section="' + k + '">' + (k + 1) + '. ' + esc(section.title) + '</button>').join('') + '</dialog>' +
+        sectionList + '</dialog>' +
       '<div class="reader__countdown" data-el="countdown" role="status" aria-live="polite" hidden></div>' +
       '<div class="reader__bar">' +
         '<div class="reader__stats mono" data-el="stats"></div>' +
@@ -126,6 +132,7 @@
       T[n] = t;
       motion[n] = moving;
       total = t;
+      shownSection = -2;
     }
 
     /* ---------- layout: where each line sits ---------- */
@@ -200,6 +207,7 @@
     let last = 0;
     let shownI = -1;
     let shownLeft = '';
+    let shownSection = -2;
     let idleTimer = 0;
 
     function timeNow() { return T[pos.i] + pos.f * dur[pos.i]; }
@@ -260,6 +268,29 @@
       setPlayIcon(); render(); savePos(); wake();
     }
 
+    function updateAgenda() {
+      if (!sections.length) return;
+      let current = -1;
+      sections.forEach((section, k) => { if (section.i <= pos.i) current = k; });
+      if (current === shownSection) return;
+      shownSection = current;
+      root_.querySelectorAll('[data-section]').forEach(button => {
+        const k = Number(button.dataset.section);
+        const state = k < current ? 'earlier' : k === current ? 'current' : k === current + 1 ? 'next' : 'upcoming';
+        button.dataset.state = state;
+        button.querySelector('[data-section-state]').textContent = { earlier: 'Earlier', current: 'Current', next: 'Next', upcoming: 'Upcoming' }[state];
+        if (k === current) button.setAttribute('aria-current', 'true'); else button.removeAttribute('aria-current');
+        const end = k + 1 < sections.length ? sections[k + 1].i : n;
+        const hasHold = tokens.slice(sections[k].i, end).some(token => token.t === 'hold');
+        button.querySelector('[data-section-time]').textContent = '~' + F.formatDuration(T[end] - T[sections[k].i]) + (hasHold ? ' + hold' : '');
+      });
+      root_.querySelector('[data-el="sectionNumber"]').textContent = (current < 0 ? '—' : String(current + 1).padStart(2, '0')) + ' / ' + String(sections.length).padStart(2, '0');
+      root_.querySelector('[data-el="sectionTitle"]').textContent = current < 0 ? 'Opening' : sections[current].title;
+      root_.querySelector('[data-el="sectionNext"]').textContent = current + 1 < sections.length ? 'Next · ' + sections[current + 1].title : 'Final section';
+      const active = root_.querySelector('.reader__agenda [aria-current]');
+      if (active && root_.querySelector('.reader__agenda').offsetWidth) active.scrollIntoView({ block: 'nearest' });
+    }
+
     function updateReadouts() {
       countdownEl.hidden = countdown <= 0;
       const countLabel = countdown > 0 ? 'Starting in ' + Math.ceil(countdown) : '';
@@ -278,6 +309,7 @@
       updateHighlight();
       updateReadouts();
       updateTempo();
+      updateAgenda();
     }
 
     function setPlayIcon() {
@@ -407,11 +439,7 @@
       else if (act === 'prev') skipSentence(-1);
       else if (act === 'agenda') {
         pause(); sheet.hidden = true;
-        let current = 0;
-        sections.forEach((section, k) => { if (section.i <= pos.i) current = k; });
-        agenda.querySelectorAll('[data-section]').forEach((button, k) => {
-          if (k === current) button.setAttribute('aria-current', 'true'); else button.removeAttribute('aria-current');
-        });
+        updateAgenda();
         agenda.showModal();
       }
       else if (act === 'close-agenda') agenda.close();

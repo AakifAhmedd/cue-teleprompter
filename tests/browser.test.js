@@ -108,9 +108,10 @@ const { chromium } = require('playwright');
     await page.getByRole('button', { name: 'Pause', exact: true }).click();
     await page.evaluate(() => document.activeElement.blur());
     const beforeDrag = (await state()).pos;
-    await page.mouse.move(200, 400); await page.mouse.down();
+    const dragStage = await page.locator('.reader__stage').boundingBox();
+    await page.mouse.move(dragStage.x + 100, 400); await page.mouse.down();
     await page.keyboard.press('Space');
-    await page.mouse.move(200, 180); await page.mouse.up();
+    await page.mouse.move(dragStage.x + 100, 180); await page.mouse.up();
     assert.deepEqual((await state()).pos, beforeDrag, 'starting Play cancels a paused drag');
 
     // One pending wake request, and a late result is released after leaving the reader.
@@ -177,18 +178,29 @@ const { chromium } = require('playwright');
     await page.getByRole('button', { name: '← Back', exact: true }).click();
     await page.waitForSelector('#new-script');
 
+    await page.setViewportSize({ width: 1440, height: 900 });
     await open('## Welcome\none two\n## Awards\nthree four');
+    assert.equal(await page.locator('.reader__agenda').isVisible(), true);
+    assert.equal(await page.locator('.reader__agenda [data-section="0"]').getAttribute('aria-current'), 'true');
     await page.getByRole('button', { name: 'Play', exact: true }).click();
     await page.getByRole('button', { name: 'Agenda', exact: true }).click();
     assert.equal((await state()).playing, false, 'agenda pauses the reader');
-    await page.locator('[data-section="1"]').click();
+    await page.locator('.agenda [data-section="1"]').click();
     assert.equal(await page.locator('.is-now').textContent(), 'Awards');
+    assert.equal(await page.locator('.reader__agenda [data-section="1"]').getAttribute('aria-current'), 'true');
+    assert.equal(await page.locator('.reader__agenda [data-section="0"]').getAttribute('data-state'), 'earlier');
+    await page.locator('.reader__agenda [data-section="0"]').click();
+    assert.equal((await state()).playing, false);
+    assert.equal(await page.locator('.is-now').textContent(), 'Welcome');
     await page.keyboard.press('Digit1');
     assert.equal(await page.locator('.is-now').textContent(), 'Welcome');
     await page.keyboard.press('PageDown');
     assert.equal(await page.locator('.is-now').textContent(), 'Awards');
     await page.keyboard.press('PageUp');
     assert.equal(await page.locator('.is-now').textContent(), 'Welcome');
+    await page.getByRole('button', { name: 'Play', exact: true }).click();
+    await step(2);
+    assert.equal(await page.locator('.reader__agenda [data-section="1"]').getAttribute('aria-current'), 'true', 'agenda follows playback');
     await page.getByRole('button', { name: 'Agenda', exact: true }).click();
     await page.screenshot({ path: '/private/tmp/cue-agenda.png' });
     await page.keyboard.press('Escape');
@@ -224,6 +236,11 @@ const { chromium } = require('playwright');
       await page.setViewportSize(size);
       await open(focusScript);
       assert.equal((await state()).focusMode, 'line');
+      assert.equal(await page.locator('.reader__agenda').isVisible(), size.width >= 1180);
+      assert.equal(await page.locator('.reader__section').isVisible(), size.width < 1180);
+      assert.match(await page.locator('[data-el="sectionTitle"]').textContent(), /Welcome/);
+      assert.match(await page.locator('[data-el="sectionNext"]').textContent(), /Our next guest/);
+      assert.match(await page.locator('.agenda [data-section="1"] [data-section-time]').textContent(), /hold/);
       const guide = await page.locator('.reader__guide').boundingBox();
       const stage = await page.locator('.reader__stage').boundingBox();
       assert.ok(Math.abs(guide.y + guide.height / 2 - (stage.y + stage.height / 2)) < 1, 'guide is centred');
@@ -242,6 +259,21 @@ const { chromium } = require('playwright');
       await page.getByLabel('Reading focus', { exact: true }).selectOption('line');
       await page.getByRole('button', { name: 'Text size' }).click();
       await page.screenshot({ path: '/private/tmp/cue-focus-line-' + size.width + '.png' });
+      if (size.width === 1440) {
+        const beforeResize = await state();
+        await page.setViewportSize({ width: 390, height: 844 });
+        assert.deepEqual((await state()).pos, beforeResize.pos);
+        assert.equal((await state()).total, beforeResize.total);
+        assert.equal(await page.locator('.reader__section').isVisible(), true);
+        await page.setViewportSize(size);
+      }
+      if (size.width < 1180) {
+        await page.getByRole('button', { name: 'Open event agenda' }).click();
+        assert.equal((await state()).playing, false);
+        await page.locator('.agenda [data-section="1"]').click();
+        assert.equal(await page.locator('[data-el="sectionTitle"]').textContent(), 'Our next guest');
+        assert.equal(await page.locator('[data-el="sectionNext"]').textContent(), 'Final section');
+      }
       const controls = await page.locator('.reader__ctl').boundingBox();
       assert.ok(controls.y >= guide.y + guide.height, 'controls stay below focus band');
       await exit();

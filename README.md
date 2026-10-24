@@ -101,3 +101,14 @@ down the screen, with a subtle fixed band and softer text above and below it.
 Scrolling and cue timing stay the same. Use the **Aa** sheet to compare the modes
 while reading; changing focus preserves your position and pace and is remembered
 on this device. The short-screen layout keeps playback controls below the guide.
+
+## Visible event agenda
+
+On wide screens the reader has a quiet **Event agenda** panel with numbered
+sections, an active marker, earlier/upcoming states and estimated section times.
+A `+ hold` label flags open-ended waiting. Phone and tablet layouts keep the text
+full-width and show a compact current/next-section strip; tapping it opens the
+agenda. All agenda markers come from the script's `##` headings, follow playback
+and update when pace changes. Selecting a marker still pauses before moving.
+The stored scripts, punctuation timing, local backups and playback controls are
+unchanged by this layout update.
