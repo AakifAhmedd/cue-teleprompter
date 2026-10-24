@@ -92,3 +92,12 @@ contain script text, including title/tempo headers; they do not contain delivery
 settings, reader positions or device identifiers. Imported scripts start paused
 at the top. JSON imports are limited to 10 MB. Keep these local files somewhere
 safe: scripts and backups are plain text. Nothing is uploaded to a server.
+
+## Reading focus
+
+Settings offers **Word by word** (the default) and **Centre guide**. Word mode
+keeps the current word underlined. Centre guide puts the reading marker halfway
+down the screen, with a subtle fixed band and softer text above and below it.
+Scrolling and cue timing stay the same. Use the **Aa** sheet to compare the modes
+while reading; changing focus preserves your position and pace and is remembered
+on this device. The short-screen layout keeps playback controls below the guide.

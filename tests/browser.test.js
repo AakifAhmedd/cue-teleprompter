@@ -212,6 +212,43 @@ const { chromium } = require('playwright');
     await exit();
     await page.evaluate(() => CueStore.setSettings({ startDelay: 0 }));
 
+    // Saved focus mode and the in-reader switch preserve timing and position.
+    await page.getByRole('button', { name: 'Settings', exact: true }).click();
+    await page.locator('#reading-focus').selectOption('line');
+    await page.getByRole('button', { name: 'Save', exact: true }).click();
+    await page.waitForSelector('#new-script');
+    await page.reload();
+    const focusScript = '---\ntitle: Annual Club Evening\ntempo: 140\n---\n## Welcome\nGood evening, everyone. Welcome to our annual celebration. Tonight we recognise our volunteers and celebrate the projects we created together.\n\n## Our next guest\nPlease welcome our president to the stage.\n[hold Applause]\nThank you for joining us.';
+    await page.evaluate(() => CueStore.setSettings({ fontSize: 44 }));
+    for (const size of [{ width: 390, height: 844 }, { width: 1440, height: 900 }, { width: 844, height: 390 }]) {
+      await page.setViewportSize(size);
+      await open(focusScript);
+      assert.equal((await state()).focusMode, 'line');
+      const guide = await page.locator('.reader__guide').boundingBox();
+      const stage = await page.locator('.reader__stage').boundingBox();
+      assert.ok(Math.abs(guide.y + guide.height / 2 - (stage.y + stage.height / 2)) < 1, 'guide is centred');
+      await page.getByRole('button', { name: 'Play', exact: true }).click();
+      await step(1.2);
+      const snapshot = await state();
+      await page.getByRole('button', { name: 'Text size' }).click();
+      await page.getByLabel('Reading focus', { exact: true }).selectOption('word');
+      assert.deepEqual((await state()).pos, snapshot.pos);
+      assert.equal((await state()).playing, true);
+      assert.equal((await state()).total, snapshot.total);
+      assert.equal((await state()).wpm, snapshot.wpm);
+      await page.getByRole('button', { name: 'Text size' }).click();
+      await page.screenshot({ path: '/private/tmp/cue-focus-word-' + size.width + '.png' });
+      await page.getByRole('button', { name: 'Text size' }).click();
+      await page.getByLabel('Reading focus', { exact: true }).selectOption('line');
+      await page.getByRole('button', { name: 'Text size' }).click();
+      await page.screenshot({ path: '/private/tmp/cue-focus-line-' + size.width + '.png' });
+      const controls = await page.locator('.reader__ctl').boundingBox();
+      assert.ok(controls.y >= guide.y + guide.height, 'controls stay below focus band');
+      await exit();
+    }
+    await page.evaluate(() => CueStore.setSettings({ focusMode: 'word', fontSize: null }));
+    await page.setViewportSize({ width: 390, height: 844 });
+
     // User defaults persist, override plain-text fallback, and toggle punctuation off.
     await page.getByRole('button', { name: 'Settings', exact: true }).click();
     await page.locator('#profile').selectOption('formal');

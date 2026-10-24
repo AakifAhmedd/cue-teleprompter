@@ -36,6 +36,8 @@
   }
 
   function open(host, rec, onExit) {
+    let focusMode = S.settings().focusMode === 'line' ? 'line' : 'word';
+    const marker = () => focusMode === 'line' ? 0.5 : MARKER;
     const pacing = F.pacing(S.settings().pacing);
     const sc = F.parse(rec.text, pacing);
     const tokens = sc.tokens;
@@ -58,7 +60,7 @@
       else html += '<div class="gap" data-i="' + i + '"></div>';
     });
     root_.innerHTML =
-      '<div class="reader__stage"><div class="reader__text">' + html + '<div class="reader__end">end of script</div></div></div>' +
+      '<div class="reader__stage"><div class="reader__guide" aria-hidden="true"></div><div class="reader__text">' + html + '<div class="reader__end">end of script</div></div></div>' +
       '<div class="reader__top">' +
         '<button class="icon-btn" data-act="exit" aria-label="Back to scripts">' + ICON.back + '</button>' +
         '<div class="reader__title">' + esc(sc.title) + '</div>' +
@@ -68,7 +70,8 @@
       '</div>' +
       '<div class="sheet" data-el="sheet" hidden>' +
         '<label class="sheet__row"><span>Text size</span><span class="mono" data-el="sizeVal"></span></label>' +
-        '<input type="range" min="' + SIZE_MIN + '" max="' + SIZE_MAX + '" step="2" data-el="size">' +
+        '<input aria-label="Text size" type="range" min="' + SIZE_MIN + '" max="' + SIZE_MAX + '" step="2" data-el="size">' +
+        '<label class="sheet__focus">Reading focus<select aria-label="Reading focus" data-el="focus"><option value="word">Word by word</option><option value="line">Centre guide</option></select></label>' +
       '</div>' +
       '<dialog class="agenda" aria-labelledby="agenda-title"><div class="toolbar"><h2 id="agenda-title">Agenda</h2><button class="btn btn--small" data-act="close-agenda">Close</button></div>' +
         '<p class="muted">Choose a section, then press Play. Shortcuts: 1–9, Page Up / Page Down.</p>' +
@@ -271,7 +274,7 @@
     function render() {
       if (!n) return;
       const y = yAt(pos.i, pos.f);
-      text.style.transform = 'translate3d(0,' + (stage.clientHeight * MARKER - y).toFixed(1) + 'px,0)';
+      text.style.transform = 'translate3d(0,' + (stage.clientHeight * marker() - y).toFixed(1) + 'px,0)';
       updateHighlight();
       updateReadouts();
       updateTempo();
@@ -441,7 +444,17 @@
     document.addEventListener('visibilitychange', onVisibility);
     root_.addEventListener('pointermove', wake);
 
-    /* ---------- text size ---------- */
+    /* ---------- reading focus and text size ---------- */
+    const focusInput = root_.querySelector('[data-el="focus"]');
+    function applyFocus(value, persist) {
+      focusMode = value === 'line' ? 'line' : 'word';
+      root_.classList.toggle('reader--line', focusMode === 'line');
+      root_.style.setProperty('--reading-line', marker() * 100 + '%');
+      focusInput.value = focusMode;
+      render();
+      if (persist) S.setSettings({ focusMode });
+    }
+    focusInput.addEventListener('change', () => applyFocus(focusInput.value, true));
     function applySize(px, persist) {
       root_.style.setProperty('--reader-size', px + 'px');
       sizeVal.textContent = px + 'px';
@@ -480,6 +493,7 @@
     layout();
     sizeInput.value = savedSize || Math.round(parseFloat(getComputedStyle(text).fontSize));
     sizeVal.textContent = sizeInput.value + 'px';
+    applyFocus(focusMode, false);
     setPlayIcon();
     render();
     holdScreen();
@@ -499,7 +513,7 @@
         document.removeEventListener('visibilitychange', onVisibility);
       },
       // exposed for tests
-      _state: () => ({ pos: { ...pos }, playing, ended, holding, countdown, elapsed, total, lines: lines.length, wpm, adj })
+      _state: () => ({ pos: { ...pos }, playing, ended, holding, focusMode, countdown, elapsed, total, lines: lines.length, wpm, adj })
     };
   }
 

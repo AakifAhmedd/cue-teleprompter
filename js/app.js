@@ -178,6 +178,8 @@
         <label class="check-row"><input id="punctuation" type="checkbox"> Pause at punctuation</label>
         <label>Comma pause (seconds)<input id="comma-pause" type="number" min="0" max="2" step="0.05" required></label>
         <label>Full stop / sentence pause (seconds)<input id="sentence-pause" type="number" min="0" max="5" step="0.05" required></label>
+        <label>Reading focus<select id="reading-focus"><option value="word">Word by word</option><option value="line">Centre guide</option></select></label>
+        <p class="muted">Word by word underlines the current word. Centre guide keeps a fixed reading band in the middle and dims the text outside it. You can also switch from Aa while reading.</p>
         <label>Countdown before starting<select id="start-delay"><option value="0">Off</option><option value="3">3 seconds</option><option value="5">5 seconds</option><option value="10">10 seconds</option></select></label>
         <p class="muted">Pauses are extra time after each word and stay the same when WPM changes. Sentence pauses also apply to ! and ?. Blank lines and headings keep a brief breather.</p>
       </form>`));
@@ -188,6 +190,7 @@
       form.querySelector('#sentence-pause').value = value.sentencePause;
     };
     fill(saved);
+    form.querySelector('#reading-focus').value = S.settings().focusMode === 'line' ? 'line' : 'word';
     form.querySelector('#start-delay').value = [3, 5, 10].includes(S.settings().startDelay) ? S.settings().startDelay : 0;
     form.querySelector('#punctuation').checked = saved.punctuation;
     form.querySelector('#profile').onchange = e => {
@@ -201,7 +204,7 @@
         punctuation: form.querySelector('#punctuation').checked,
         commaPause: Number(form.querySelector('#comma-pause').value),
         sentencePause: Number(form.querySelector('#sentence-pause').value)
-      }), startDelay: Number(form.querySelector('#start-delay').value) });
+      }), startDelay: Number(form.querySelector('#start-delay').value), focusMode: form.querySelector('#reading-focus').value });
       toast(S.isSessionOnly() ? 'Defaults saved only for this session' : 'Delivery defaults saved');
       location.hash = '#/';
     };
