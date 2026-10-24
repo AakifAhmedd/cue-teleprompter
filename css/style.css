@@ -88,3 +88,69 @@ body {
 .btn--primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
 .btn--danger { color: var(--danger); }
 .btn--small { padding: 7px 12px; font-size: 14px; }
+
+/* ---------- toolbar ---------- */
+.toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.toolbar h1 { margin: 0; font-size: 20px; flex: 1; }
+.toolbar h1:not(:first-child) { text-align: center; }
+
+/* ---------- library ---------- */
+.card-list { display: grid; gap: 12px; }
+.card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-m);
+  box-shadow: var(--glass-shadow);
+  backdrop-filter: blur(16px) saturate(150%);
+  -webkit-backdrop-filter: blur(16px) saturate(150%);
+}
+.card__main { flex: 1; min-width: 0; cursor: pointer; }
+.card__main h3 { margin: 0 0 2px; font-size: 17px; overflow-wrap: anywhere; }
+.card__main p { margin: 0; font-size: 13px; }
+.card__actions { display: flex; flex-direction: column; gap: 6px; }
+
+/* ---------- editor ---------- */
+.editor-tools { display: flex; gap: 8px; margin-bottom: 10px; }
+.editor-tools label { display: inline-block; }
+.editor {
+  width: 100%;
+  min-height: 52vh;
+  resize: vertical;
+  padding: 14px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-m);
+  color: var(--text);
+  font: 15px/1.55 var(--font-mono);
+}
+.editor:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+.summary { margin-top: 10px; font-size: 14px; }
+.summary .warn { color: var(--danger); margin-top: 2px; }
+.btn:disabled { opacity: 0.4; cursor: default; }
+
+/* ---------- toast ---------- */
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: calc(24px + var(--safe-bottom));
+  transform: translate(-50%, 20px);
+  opacity: 0;
+  pointer-events: none;
+  padding: 10px 16px;
+  background: var(--glass-strong);
+  border: 1px solid var(--glass-border);
+  border-radius: 999px;
+  font-size: 14px;
+  transition: opacity 0.2s, transform 0.2s;
+}
+.toast.is-on { opacity: 1; transform: translate(-50%, 0); }
