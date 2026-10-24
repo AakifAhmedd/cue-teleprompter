@@ -246,6 +246,24 @@ const { chromium } = require('playwright');
     await context.grantPermissions(['clipboard-read', 'clipboard-write']);
     await page.getByRole('button', { name: 'Copy AI prompt' }).click();
     assert.match(await page.evaluate(() => navigator.clipboard.readText()), /\[tempo reset\]/);
+    const aiText = await page.evaluate(() => navigator.clipboard.readText());
+    assert.match(aiText, /before or after the script/);
+    assert.match(aiText, /If no script has been provided/);
+    assert.match(aiText, /Preserve the spoken wording/);
+    assert.equal(await page.locator('#ai-prompt').isVisible(), false, 'instructions stay folded until needed');
+    for (const width of [390, 1440]) {
+      await page.setViewportSize({ width, height: 900 });
+      assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true, 'format fits screen');
+      await page.screenshot({ path: '/private/tmp/cue-format-' + width + '.png', fullPage: true });
+    }
+    await page.evaluate(() => {
+      window.originalClipboardWrite = navigator.clipboard.writeText;
+      navigator.clipboard.writeText = async () => { throw new Error('Clipboard unavailable'); };
+    });
+    await page.getByRole('button', { name: 'Copy AI prompt', exact: true }).click();
+    await until(() => document.querySelector('#prompt-details').open);
+    assert.equal(await page.locator('#ai-prompt').inputValue(), aiText, 'manual copy contains the same instructions');
+    await page.evaluate(() => { navigator.clipboard.writeText = window.originalClipboardWrite; });
     await page.getByRole('button', { name: '← Back', exact: true }).click();
     await page.waitForSelector('#new-script');
 

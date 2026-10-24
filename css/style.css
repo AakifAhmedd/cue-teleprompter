@@ -567,3 +567,21 @@ body.is-reading .storage-warning { position: fixed; z-index: 20; top: calc(64px 
 .library-backups > summary { width: fit-content; cursor: pointer; }
 .library-backups__actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 14px; }
 .library-backups p { font-size: 13px; }
+
+/* Format follows a short prepare → AI chat → paste flow; syntax stays optional. */
+.format-intro { color: var(--muted); margin-bottom: 22px; }
+.format-path { margin: 16px 0; padding: 20px; border: 1px solid var(--line); border-radius: var(--radius-m); }
+.format-path h2 { margin: 8px 0 10px; font-size: 20px; }
+.format-path p { font-size: 14px; color: var(--muted); line-height: 1.6; }
+.format-path__tag { color: var(--accent); text-transform: uppercase; letter-spacing: .1em; font: 600 11px var(--font-mono); }
+.format-path--ai { border-color: rgba(201,165,92,.3); background: rgba(201,165,92,.035); }
+.format-steps { padding-left: 22px; margin: 18px 0; }
+.format-steps li { padding-left: 6px; margin: 15px 0; font-size: 14px; }
+.format-steps li::marker { color: var(--accent); font-weight: 700; }
+.format-steps strong, .format-steps span { display: block; }
+.format-steps span { color: var(--muted); margin-top: 4px; line-height: 1.5; }
+.format-path .format-guide__copy { width: auto; margin: 0; }
+.format-reassurance { font-size: 12px !important; }
+.format-guide summary { cursor: pointer; font-size: 14px; padding-block: 10px; }
+.format-reference { border-top: 1px solid var(--line); padding-block: 7px; }
+.format-guide .prompt { font-size: 13px; min-height: 240px; }

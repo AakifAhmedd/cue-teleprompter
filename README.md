@@ -54,7 +54,9 @@ Settings apply when a script is opened; live tempo buttons still move in 5 WPM s
 
 ## Stage cues and script format
 
-Open **Format** for an example and a **Copy AI prompt** button. Use `##` headings
+Open **Format** for a short workflow, optional cue reference and **Copy AI prompt**.
+The copied instructions work before or after an existing script in the same AI
+conversation. They preserve spoken wording and ask for the script if it is missing. Use `##` headings
 for unspoken section labels and `*emphasis*` for highlighted words. Each cue below
 must be on its own line:
 
