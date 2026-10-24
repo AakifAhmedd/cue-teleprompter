@@ -165,6 +165,7 @@
 
   /* ---------- saved delivery defaults ---------- */
   function renderSettings() {
+    const visual = F.readerLayout(S.settings());
     const saved = F.pacing(S.settings().pacing);
     const presets = {
       standard: { defaultTempo: 140, commaPause: 0.25, sentencePause: 0.5 },
@@ -182,6 +183,8 @@
         <label>Full stop / sentence pause (seconds)<input id="sentence-pause" type="number" min="0" max="5" step="0.05" required></label>
         <label>Reading focus<select id="reading-focus"><option value="word">Word by word</option><option value="line">Centre guide</option></select></label>
         <p class="muted">Word by word highlights each word and uses your punctuation pauses. Centre guide scrolls continuously through a taller reading window, blurring earlier text and softening what comes next. Explicit pause and hold cues still work. Switch from Aa while reading.</p>
+        <label>Reading width <output id="width-value"></output><input aria-label="Reading width" id="reading-width" type="range" min="50" max="100" step="5"></label>
+        <label>Line spacing <output id="spacing-value"></output><input aria-label="Line spacing" id="line-spacing" type="range" min="1.2" max="2.2" step="0.1"></label>
         <label>Centre guide height<select id="guide-rows"><option value="3">3 rows</option><option value="4">4 rows</option><option value="5">5 rows</option></select></label>
         <label>Countdown before starting<select id="start-delay"><option value="0">Off</option><option value="3">3 seconds</option><option value="5">5 seconds</option><option value="10">10 seconds</option></select></label>
         <p class="muted">In word mode, punctuation pauses add extra time after each word and stay the same when WPM changes. Sentence pauses also apply to ! and ?. Centre guide ignores these automatic pauses.</p>
@@ -193,6 +196,10 @@
       form.querySelector('#sentence-pause').value = value.sentencePause;
     };
     fill(saved);
+    form.querySelector('#reading-width').value = visual.readingWidth;
+    form.querySelector('#line-spacing').value = visual.lineSpacing;
+    const visualValues = () => { form.querySelector('#width-value').textContent = form.querySelector('#reading-width').value + '%'; form.querySelector('#spacing-value').textContent = Number(form.querySelector('#line-spacing').value).toFixed(1) + '×'; };
+    form.querySelector('#reading-width').oninput = visualValues; form.querySelector('#line-spacing').oninput = visualValues; visualValues();
     form.querySelector('#guide-rows').value = [3, 4, 5].includes(S.settings().guideRows) ? S.settings().guideRows : 3;
     form.querySelector('#reading-focus').value = S.settings().focusMode === 'line' ? 'line' : 'word';
     form.querySelector('#start-delay').value = [3, 5, 10].includes(S.settings().startDelay) ? S.settings().startDelay : 0;
@@ -208,7 +215,7 @@
         punctuation: form.querySelector('#punctuation').checked,
         commaPause: Number(form.querySelector('#comma-pause').value),
         sentencePause: Number(form.querySelector('#sentence-pause').value)
-      }), startDelay: Number(form.querySelector('#start-delay').value), focusMode: form.querySelector('#reading-focus').value, guideRows: Number(form.querySelector('#guide-rows').value) });
+      }), startDelay: Number(form.querySelector('#start-delay').value), focusMode: form.querySelector('#reading-focus').value, guideRows: Number(form.querySelector('#guide-rows').value), ...F.readerLayout({ readingWidth: Number(form.querySelector('#reading-width').value), lineSpacing: Number(form.querySelector('#line-spacing').value) }) });
       toast(S.isSessionOnly() ? 'Defaults saved only for this session' : 'Delivery defaults saved');
       location.hash = '#/';
     };

@@ -100,4 +100,6 @@ assert.ok(F.sourceSections(moved).sections[2].includes('[pause 2]'));
 assert.strictEqual(F.moveSection(agendaSource, 1, 1), agendaSource);
 assert.throws(() => F.moveSection(agendaSource, 0, 5));
 assert.strictEqual(F.sourceSections('---\n## not a body heading\n---\n## Body\nwords').sections.length, 1);
+assert.deepStrictEqual(F.readerLayout({ readingWidth: 1, lineSpacing: 9 }), { readingWidth: 50, lineSpacing: 2.2 });
+assert.deepStrictEqual(F.readerLayout({ readingWidth: NaN, lineSpacing: Infinity }), { readingWidth: 100, lineSpacing: 1.5 });
 console.log('format tests passed');

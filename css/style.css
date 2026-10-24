@@ -187,7 +187,7 @@ body.is-reading .app-header { display: none; }
   margin: 0 auto;
   padding: 0 24px;
   font-size: var(--reader-size, clamp(30px, 8.4vw, 64px));
-  line-height: 1.5;
+  line-height: var(--reader-line-spacing, 1.5);
   font-weight: 600;
   overflow-wrap: anywhere;
   will-change: transform;
@@ -454,3 +454,7 @@ body.is-reading .storage-warning { position: fixed; z-index: 20; top: calc(64px 
 .reader__agenda-head { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 4px 8px; }
 .reader__agenda-head h2, .reader__agenda-head > span { grid-column: 1; }
 .reader__agenda-head [data-act="reorder"] { grid-column: 2; grid-row: 1 / span 2; margin-top: 0; }
+
+.sheet { max-height: calc(100dvh - 90px - var(--safe-top)); overflow-y: auto; }
+.settings input[type="range"] { width: 100%; accent-color: var(--accent); }
+.settings output, .sheet output { font: 12px var(--font-mono); color: var(--accent); }

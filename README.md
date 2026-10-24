@@ -149,3 +149,11 @@ Timed pauses and holds use a stationary status badge rather than a separate row 
 the scrolling text. This keeps the same scroll position at entry and exit while
 preserving cue duration. The tutorial is regression-tested at 300 WPM to check
 these transitions on phone and desktop layouts.
+
+## Reading width and line spacing
+
+Settings and the reader's **Aa** sheet offer reading width (50–100% of the normal
+text column) and line spacing (1.2–2.2×). The defaults remain full width and 1.5×.
+Aa applies changes immediately without moving the token position, changing WPM,
+or restarting playback. Both choices are remembered on the device. The focus
+window continues to measure actual rendered rows at your chosen line spacing.

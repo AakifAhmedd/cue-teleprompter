@@ -39,6 +39,15 @@
     };
   }
 
+  function readerLayout(value = {}) {
+    if (!value || typeof value !== 'object') value = {};
+    const number = (n, fallback, min, max) => typeof n === 'number' && Number.isFinite(n) ? Math.max(min, Math.min(max, n)) : fallback;
+    return {
+      readingWidth: Math.round(number(value.readingWidth, 100, 50, 100)),
+      lineSpacing: Math.round(number(value.lineSpacing, 1.5, 1.2, 2.2) * 10) / 10
+    };
+  }
+
   function playbackPacing(options, focusMode) {
     const value = pacing(options);
     if (focusMode === 'line') value.punctuation = false;
@@ -218,7 +227,7 @@
     return m + ':' + String(s).padStart(2, '0');
   }
 
-  const api = { DEFAULT_TEMPO, MIN_TEMPO, MAX_TEMPO, clampTempo, pacing, playbackPacing, sourceSections, moveSection, parse, beats, sentenceStarts, tokenSeconds, tempoFor, estimateSeconds, formatDuration };
+  const api = { DEFAULT_TEMPO, MIN_TEMPO, MAX_TEMPO, clampTempo, pacing, readerLayout, playbackPacing, sourceSections, moveSection, parse, beats, sentenceStarts, tokenSeconds, tempoFor, estimateSeconds, formatDuration };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.CueFormat = api;
 })(typeof self !== 'undefined' ? self : this);

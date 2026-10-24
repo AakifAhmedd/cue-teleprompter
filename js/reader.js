@@ -38,6 +38,7 @@
   function open(host, rec, onExit, onReorder, options = {}) {
     let focusMode = S.settings().focusMode === 'line' ? 'line' : 'word';
     let guideRows = [3, 4, 5].includes(S.settings().guideRows) ? S.settings().guideRows : 3;
+    let visual = F.readerLayout(S.settings());
     const marker = () => focusMode === 'line' ? 0.5 : MARKER;
     const pacing = F.pacing(S.settings().pacing);
     const sc = F.parse(rec.text, pacing);
@@ -81,6 +82,8 @@
         '<label class="sheet__row"><span>Text size</span><span class="mono" data-el="sizeVal"></span></label>' +
         '<input aria-label="Text size" type="range" min="' + SIZE_MIN + '" max="' + SIZE_MAX + '" step="2" data-el="size">' +
         '<label class="sheet__focus">Guide height<select aria-label="Guide height" data-el="guideRows"><option value="3">3 rows</option><option value="4">4 rows</option><option value="5">5 rows</option></select></label>' +
+        '<label class="sheet__focus">Reading width <output data-el="widthValue"></output><input aria-label="Reading width" data-el="width" type="range" min="50" max="100" step="5"></label>' +
+        '<label class="sheet__focus">Line spacing <output data-el="spacingValue"></output><input aria-label="Line spacing" data-el="spacing" type="range" min="1.2" max="2.2" step="0.1"></label>' +
         '<label class="sheet__focus">Reading focus<select aria-label="Reading focus" data-el="focus"><option value="word">Word by word</option><option value="line">Centre guide</option></select></label>' +
       '</div>' +
       '<dialog class="agenda" aria-labelledby="agenda-title"><div class="toolbar"><h2 id="agenda-title">Agenda</h2><button class="btn btn--small" data-act="reorder" aria-pressed="false">Reorder</button><button class="btn btn--small" data-act="close-agenda">Close</button></div>' +
@@ -149,6 +152,8 @@
 
     function layout() {
       lines = [];
+      text.style.width = Math.min(960, stage.clientWidth) * visual.readingWidth / 100 + 'px';
+      root_.style.setProperty('--reader-line-spacing', visual.lineSpacing);
       lineHeight = parseFloat(getComputedStyle(text).lineHeight);
       let curY = -1e9;
       let forceNew = true;
@@ -566,6 +571,21 @@
 
     /* ---------- reading focus and text size ---------- */
     const focusInput = root_.querySelector('[data-el="focus"]');
+    const widthInput = root_.querySelector('[data-el="width"]');
+    const spacingInput = root_.querySelector('[data-el="spacing"]');
+    function updateVisualControls() {
+      widthInput.value = visual.readingWidth;
+      spacingInput.value = visual.lineSpacing;
+      root_.querySelector('[data-el="widthValue"]').textContent = visual.readingWidth + '%';
+      root_.querySelector('[data-el="spacingValue"]').textContent = visual.lineSpacing.toFixed(1) + '×';
+    }
+    function applyVisual() {
+      visual = F.readerLayout({ readingWidth: Number(widthInput.value), lineSpacing: Number(spacingInput.value) });
+      updateVisualControls(); layout(); render(); S.setSettings(visual);
+    }
+    widthInput.addEventListener('input', applyVisual);
+    spacingInput.addEventListener('input', applyVisual);
+    updateVisualControls();
     const rowsInput = root_.querySelector('[data-el="guideRows"]');
     rowsInput.value = guideRows;
     rowsInput.addEventListener('change', () => {
@@ -652,7 +672,7 @@
         document.removeEventListener('visibilitychange', onVisibility);
       },
       // exposed for tests
-      _state: () => ({ pos: { ...pos }, playing, reordering, ended, holding, focusMode, guideRows, countdown, elapsed, total, lines: lines.length, wpm, adj })
+      _state: () => ({ pos: { ...pos }, playing, reordering, ended, holding, focusMode, guideRows, visual: { ...visual }, countdown, elapsed, total, lines: lines.length, wpm, adj })
     };
   }
 

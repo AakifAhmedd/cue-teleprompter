@@ -418,6 +418,29 @@ const { chromium } = require('playwright');
     await page.evaluate(() => CueStore.setSettings({ focusMode: 'word', fontSize: null }));
     await page.setViewportSize({ width: 390, height: 844 });
 
+    await page.getByRole('button', { name: 'Settings', exact: true }).click();
+    await page.locator('#reading-width').fill('75');
+    await page.locator('#line-spacing').fill('1.8');
+    await page.getByRole('button', { name: 'Save', exact: true }).click();
+    await page.waitForSelector('#new-script');
+    await page.reload();
+    await open('A readable column with enough words to wrap over several lines. Another sentence follows for this layout test.');
+    assert.deepEqual((await state()).visual, { readingWidth: 75, lineSpacing: 1.8 });
+    const initialWidth = (await page.locator('.reader__text').boundingBox()).width;
+    await page.getByRole('button', { name: 'Play', exact: true }).click();
+    await step(0.2);
+    const visualPosition = await state();
+    await page.getByRole('button', { name: 'Text size' }).click();
+    await page.getByRole('slider', { name: 'Reading width', exact: true }).fill('50');
+    await page.getByRole('slider', { name: 'Line spacing', exact: true }).fill('2');
+    assert.deepEqual((await state()).pos, visualPosition.pos);
+    assert.equal((await state()).total, visualPosition.total);
+    assert.equal((await state()).playing, true);
+    assert.ok((await page.locator('.reader__text').boundingBox()).width < initialWidth);
+    assert.equal(await page.locator('.reader__text').evaluate(e => getComputedStyle(e).lineHeight), await page.locator('.reader__text').evaluate(e => parseFloat(getComputedStyle(e).fontSize) * 2 + 'px'));
+    await exit();
+    await page.evaluate(() => CueStore.setSettings({ readingWidth: 100, lineSpacing: 1.5 }));
+
     // User defaults persist, override plain-text fallback, and toggle punctuation off.
     await page.getByRole('button', { name: 'Settings', exact: true }).click();
     await page.locator('#profile').selectOption('formal');
