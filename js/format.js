@@ -75,20 +75,37 @@
     const tokens = [];
     let inEm = false;
     let firstHeading = null;
+    let sectionTempo = null;
+    function push(tok) {
+      if (sectionTempo !== null) tok.tempo = sectionTempo;
+      tokens.push(tok);
+    }
 
     function pushBreak() {
       const last = tokens[tokens.length - 1];
-      if (last && last.t !== 'br') tokens.push({ t: 'br' });
+      if (last && last.t !== 'br') push({ t: 'br' });
       inEm = false;
     }
 
     for (const raw of body) {
       const line = raw.trim();
       if (line === '') { pushBreak(); continue; }
+      const cue = line.match(/^\[(tempo|pause|hold|note)\b(.*?)\]$/i);
+      if (cue) {
+        const command = cue[1].toLowerCase(), arg = cue[2].trim(), value = Number(arg);
+        if (command === 'tempo' && /^reset$/i.test(arg)) sectionTempo = null;
+        else if (command === 'tempo' && arg && Number.isFinite(value) && value >= MIN_TEMPO && value <= MAX_TEMPO) sectionTempo = Math.round(value);
+        else if (command === 'pause' && arg && Number.isFinite(value) && value > 0 && value <= 3600) push({ t: 'pause', seconds: value });
+        else if (command === 'hold') push({ t: 'hold', s: arg || 'Press Play to continue' });
+        else if (command === 'note' && arg) push({ t: 'note', s: arg });
+        else warnings.push('Ignored invalid cue: ' + line);
+        inEm = false;
+        continue;
+      }
       const h = line.match(/^#{1,6}\s+(.*)$/);
       if (h) {
         pushBreak();
-        tokens.push({ t: 'h', s: h[1].trim() });
+        push({ t: 'h', s: h[1].trim() });
         if (firstHeading === null) firstHeading = h[1].trim();
         continue;
       }
@@ -97,7 +114,7 @@
         const trail = /\*["'’”).,!?;:…]*$/.test(piece);   // closing marks may precede punctuation
         const s = piece.replace(/\*+/g, '');
         if (lead) inEm = true;
-        if (s) tokens.push({ t: 'w', s, em: inEm, p: punctClass(s) });
+        if (s) push({ t: 'w', s, em: inEm, p: punctClass(s) });
         if (trail) inEm = false;
       }
     }
@@ -128,7 +145,7 @@
   function beats(tok) {
     if (tok.t === 'w') return 1;
     if (tok.t === 'br') return BEAT_BREAK;
-    if (tok.t === 'h') return BEAT_HEADING;
+    if (tok.t === 'h' || tok.t === 'note') return BEAT_HEADING;
     return 0;
   }
 
@@ -146,14 +163,19 @@
   }
 
   function tokenSeconds(tok, wpm, options) {
+    if (tok.t === 'pause') return tok.seconds;
     const defaults = pacing(options);
     const pause = tok.t === 'w' && defaults.punctuation ? (tok.p === 2 ? defaults.sentencePause : tok.p === 1 ? defaults.commaPause : 0) : 0;
     return beats(tok) * 60 / wpm + pause;
   }
 
-  function estimateSeconds(tokens, wpm, options) {
+  function tempoFor(tok, base, adj = 0) {
+    return clampTempo((tok.tempo === undefined ? base : tok.tempo) + adj);
+  }
+
+  function estimateSeconds(tokens, wpm, options, adj = 0) {
     let total = 0;
-    for (const tok of tokens) total += tokenSeconds(tok, wpm, options);
+    for (const tok of tokens) total += tokenSeconds(tok, tempoFor(tok, wpm, adj), options);
     return total;
   }
 
@@ -164,7 +186,7 @@
     return m + ':' + String(s).padStart(2, '0');
   }
 
-  const api = { DEFAULT_TEMPO, MIN_TEMPO, MAX_TEMPO, clampTempo, pacing, parse, beats, sentenceStarts, tokenSeconds, estimateSeconds, formatDuration };
+  const api = { DEFAULT_TEMPO, MIN_TEMPO, MAX_TEMPO, clampTempo, pacing, parse, beats, sentenceStarts, tokenSeconds, tempoFor, estimateSeconds, formatDuration };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.CueFormat = api;
 })(typeof self !== 'undefined' ? self : this);

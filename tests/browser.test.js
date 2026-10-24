@@ -124,6 +124,57 @@ const { chromium } = require('playwright');
     await page.waitForSelector('.reader');
     await exit();
 
+    await open('---\ntempo: 120\n---\none two\n[tempo 240]\nthree four\n[pause 3]\n[hold Applause]\n[tempo reset]\nfive six');
+    assert.equal((await state()).total, 5.5);
+    await page.getByRole('button', { name: 'Play', exact: true }).click();
+    await step(1.01);
+    assert.equal((await state()).wpm, 240);
+    await step(0.5);
+    assert.equal(await page.locator('.is-now').textContent(), 'Pause 3s');
+    await page.getByRole('button', { name: 'Pause', exact: true }).click();
+    const timedPause = (await state()).pos;
+    await step(10);
+    assert.deepEqual((await state()).pos, timedPause);
+    await page.getByRole('button', { name: 'Play', exact: true }).click();
+    await step(3.1);
+    assert.equal((await state()).holding, true);
+    assert.equal((await state()).playing, false);
+    assert.equal(await page.locator('.is-now').textContent(), 'Applause');
+    await step(10);
+    assert.equal((await state()).holding, true);
+    await page.getByRole('button', { name: 'Resume', exact: true }).click();
+    await step(0.02);
+    assert.equal((await state()).wpm, 120);
+    await step(1);
+    assert.equal((await state()).ended, true);
+    await exit();
+    await open('one\n[hold]\n[hold]');
+    await page.getByRole('button', { name: 'Play', exact: true }).click();
+    await step(1);
+    for (let k = 0; k < 2; k++) {
+      assert.equal((await state()).holding, true);
+      await page.getByRole('button', { name: 'Resume', exact: true }).click();
+      await step(0.1);
+    }
+    assert.equal((await state()).ended, true);
+    await exit();
+    // The added punctuation time holds the scroll position still.
+    await page.setViewportSize({ width: 390, height: 844 });
+    await open('---\ntempo: 120\n---\nWelcome, to our wonderful evening with everyone here today.');
+    await page.getByRole('button', { name: 'Play', exact: true }).click();
+    await step(0.51);
+    const frozen = await page.locator('.reader__text').getAttribute('style');
+    await step(0.2);
+    assert.equal(await page.locator('.reader__text').getAttribute('style'), frozen);
+    await exit();
+    await page.getByRole('button', { name: 'Format', exact: true }).click();
+    await page.waitForSelector('#copy-prompt');
+    await context.grantPermissions(['clipboard-read', 'clipboard-write']);
+    await page.getByRole('button', { name: 'Copy AI prompt' }).click();
+    assert.match(await page.evaluate(() => navigator.clipboard.readText()), /\[tempo reset\]/);
+    await page.getByRole('button', { name: '← Back', exact: true }).click();
+    await page.waitForSelector('#new-script');
+
     // User defaults persist, override plain-text fallback, and toggle punctuation off.
     await page.getByRole('button', { name: 'Settings', exact: true }).click();
     await page.locator('#profile').selectOption('formal');

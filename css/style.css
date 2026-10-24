@@ -333,3 +333,9 @@ body.is-reading .storage-warning { position: fixed; z-index: 20; top: calc(64px 
 .settings input[type="checkbox"] { width: 22px; height: 22px; accent-color: var(--accent); }
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
 .toolbar { flex-wrap: wrap; }
+
+.reader__text .cue { color: var(--accent); background: rgba(201,165,92,0.08); border-left: 3px solid var(--accent); padding: 0.7em; margin: 0.5em 0; font: 500 0.5em/1.6 var(--font-mono); }
+.format-guide dt { margin-top: 16px; color: var(--accent); font-family: var(--font-mono); }
+.format-guide dd { margin: 4px 0 0; color: var(--muted); }
+.format-guide pre { white-space: pre-wrap; overflow-wrap: anywhere; padding: 16px; border: 1px solid var(--line); border-radius: var(--radius-m); }
+.format-guide .prompt { min-height: 180px; margin-top: 12px; }

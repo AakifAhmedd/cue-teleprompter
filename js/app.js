@@ -49,9 +49,11 @@
     view.replaceChildren(el(`
       <div class="toolbar">
         <h1>Scripts</h1>
+        <button class="btn btn--small" id="format">Format</button>
         <button class="btn btn--small" id="settings">Settings</button>
         <button class="btn btn--primary" id="new-script">New script</button>
       </div>`));
+    view.querySelector('#format').onclick = () => { location.hash = '#/format'; };
     view.querySelector('#settings').onclick = () => { location.hash = '#/settings'; };
     view.querySelector('#new-script').onclick = () => { location.hash = '#/new'; };
 
@@ -85,6 +87,28 @@
       list.appendChild(card);
     }
     view.appendChild(list);
+  }
+
+  const FORMAT_EXAMPLE = '---\ntitle: Club Night\ntempo: 140\n---\n\n## Welcome\nGood evening, *everyone*.\n[pause 2]\n[tempo 170]\nLet’s welcome our first guest!\n[hold Applause]\n[tempo reset]\n[note Hand over the microphone]\nThank you for joining us.';
+  const AI_PROMPT = 'Write a plain-text event MC script for CUE. Return the script without code fences. Optionally start with a --- header containing title: and tempo: (60–300 WPM). Use ## headings for sections, *emphasis* for important words, blank lines for breathers. Put every stage cue on its own line: [tempo 170] sets a section pace until changed, [tempo reset] returns to the header or user default pace, [pause 3] waits exactly three seconds, [hold Applause] waits until I press Play, and [note Hand over microphone] shows an unspoken presenter note. Cues and headings are not spoken. Use holds for unpredictable applause or handovers. CUE adds the user’s configured punctuation pauses automatically. Adapt the script to the event details I provide next.';
+  function renderFormat() {
+    view.replaceChildren(el(`<section class="format-guide">
+      <div class="toolbar"><button class="btn btn--small" id="back">← Back</button><h1>Script format</h1></div>
+      <p>Plain text works. Add optional headings, *emphasis*, and cues on separate lines:</p>
+      <dl><dt>[tempo 170] / [tempo reset]</dt><dd>Change pace until another tempo cue. Reset uses the header or your saved default. + / − still adjust all sections together.</dd>
+      <dt>[pause 3]</dt><dd>Wait exactly three seconds, regardless of WPM. Positive decimal seconds up to 3600 work too.</dd>
+      <dt>[hold Applause]</dt><dd>Stop until you press Play. The label is optional.</dd>
+      <dt>[note Hand over microphone]</dt><dd>Show an unspoken presenter note with a short breather.</dd></dl>
+      <p class="muted">Duration estimates include timed pauses and exclude time spent waiting at holds.</p>
+      <pre>${esc(FORMAT_EXAMPLE)}</pre><button class="btn btn--primary" id="copy-prompt">Copy AI prompt</button>
+      <textarea class="editor prompt" id="ai-prompt" aria-label="AI prompt" readonly></textarea>
+    </section>`));
+    view.querySelector('#back').onclick = () => { location.hash = '#/'; };
+    const prompt = view.querySelector('#ai-prompt'); prompt.value = AI_PROMPT;
+    view.querySelector('#copy-prompt').onclick = async () => {
+      try { await navigator.clipboard.writeText(AI_PROMPT); toast('AI prompt copied'); }
+      catch (_) { prompt.focus(); prompt.select(); toast('Select and copy the prompt below'); }
+    };
   }
 
   /* ---------- saved delivery defaults ---------- */
@@ -211,6 +235,7 @@
     document.body.classList.remove('is-reading');
     const [name, id] = location.hash.replace(/^#\/?/, '').split('/');
     window.scrollTo(0, 0);
+    if (name === 'format') return renderFormat();
     if (name === 'settings') return renderSettings();
     if (name === 'new') return renderEditor(null);
     if (name === 'edit' && id) return renderEditor(id);

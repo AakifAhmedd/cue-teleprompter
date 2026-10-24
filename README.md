@@ -48,3 +48,18 @@ at sentence endings. Pauses can be switched off or adjusted independently of WPM
 Standard, Formal and Lively profiles provide starting points; saving keeps your
 adjustments on this device. A script's `tempo:` header overrides the default pace.
 Settings apply when a script is opened; live tempo buttons still move in 5 WPM steps.
+
+## Stage cues and script format
+
+Open **Format** for an example and a **Copy AI prompt** button. Use `##` headings
+for unspoken section labels and `*emphasis*` for highlighted words. Each cue below
+must be on its own line:
+
+- `[tempo 170]` changes the section pace; `[tempo reset]` restores the header or
+  saved default pace. Live tempo controls apply the same offset across sections.
+- `[pause 3]` waits exactly three seconds (positive decimal values up to 3600).
+- `[hold Applause]` stops until Play is pressed; the label is optional.
+- `[note Hand over microphone]` displays an unspoken presenter note.
+
+Script duration includes fixed pauses and excludes unpredictable waiting at holds.
+Punctuation pauses keep the text still during the extra pause time.

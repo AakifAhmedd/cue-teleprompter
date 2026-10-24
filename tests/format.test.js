@@ -65,4 +65,22 @@ assert.strictEqual(F.tokenSeconds({ t: 'w', p: 2 }, 120, { punctuation: false })
 assert.strictEqual(F.tokenSeconds({ t: 'w', p: 2 }, 120, { sentencePause: 1.2 }), 1.7);
 assert.strictEqual(F.pacing(null).defaultTempo, F.DEFAULT_TEMPO);
 assert.strictEqual(F.pacing({ defaultTempo: NaN, commaPause: Infinity }).commaPause, 0.25);
+s = F.parse('---\ntempo: 120\n---\none\n[tempo 180]\ntwo three\n[tempo reset]\nfour');
+assert.strictEqual(s.words, 4);
+assert.deepStrictEqual(s.tokens.map(t => F.tempoFor(t, s.tempo)), [120, 180, 180, 120]);
+assert.ok(Math.abs(F.estimateSeconds(s.tokens, s.tempo) - 5 / 3) < 1e-10);
+assert.deepStrictEqual(s.tokens.map(t => F.tempoFor(t, s.tempo, 5)), [125, 185, 185, 125]);
+assert.strictEqual(F.tempoFor({ tempo: 300 }, 120, 5), 300);
+s = F.parse('one\n[pause 3]\n[hold Applause]\n[note Hand over mic]\ntwo');
+assert.strictEqual(s.words, 2);
+assert.deepStrictEqual(s.tokens.map(t => t.t), ['w', 'pause', 'hold', 'note', 'w']);
+assert.strictEqual(F.estimateSeconds(s.tokens, 120), 4.5);
+assert.strictEqual(F.estimateSeconds(s.tokens, 240), 3.75);
+assert.strictEqual(F.tokenSeconds(F.parse('[pause 0.25]').tokens[0], 120), 0.25);
+for (const cue of ['[tempo 0]', '[tempo 301]', '[tempo fast]', '[pause -1]', '[pause 0]', '[pause Infinity]', '[note]']) {
+  s = F.parse('one\n' + cue + '\ntwo');
+  assert.strictEqual(s.words, 2, cue);
+  assert.ok(s.warnings.some(w => /invalid cue/.test(w)), cue);
+}
+assert.strictEqual(F.parse('Say [hold] aloud').words, 3);
 console.log('format tests passed');

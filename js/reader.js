@@ -51,6 +51,7 @@
     let html = '';
     tokens.forEach((t, i) => {
       if (t.t === 'w') html += '<span class="w' + (t.em ? ' em' : '') + '" data-i="' + i + '">' + esc(t.s) + '</span> ';
+      else if (t.t === 'pause' || t.t === 'hold' || t.t === 'note') html += '<div class="cue" data-i="' + i + '">' + esc(t.t === 'pause' ? 'Pause ' + t.seconds + 's' : t.s) + '</div>';
       else if (t.t === 'h') html += '<div class="sect" data-i="' + i + '">' + esc(t.s) + '</div>';
       else html += '<div class="gap" data-i="' + i + '"></div>';
     });
@@ -93,17 +94,23 @@
     let dur = new Float64Array(n);
     let T = new Float64Array(n + 1);   // start time of each token; T[n] = total
     let total = 0;
+    const motion = new Float64Array(n + 1);
+    const motionDur = new Float64Array(n);
 
-    function wpmAt(_i) { return wpm; }
+    function wpmAt(i) { return F.tempoFor(tokens[i], base, adj); }
 
     function buildTimeline() {
-      let t = 0;
+      let t = 0, moving = 0;
       for (let i = 0; i < n; i++) {
         dur[i] = F.tokenSeconds(tokens[i], wpmAt(i), pacing);
         T[i] = t;
         t += dur[i];
+        motion[i] = moving;
+        motionDur[i] = F.beats(tokens[i]) * 60 / wpmAt(i);
+        moving += motionDur[i];
       }
       T[n] = t;
+      motion[n] = moving;
       total = t;
     }
 
@@ -129,14 +136,15 @@
     }
 
     function yAt(i, f) {
+      if (tokens[i].t === 'pause' || tokens[i].t === 'hold') return lines[lineOf[i]].y;
       const k = lineOf[i];
       const line = lines[k];
       const next = lines[k + 1];
       if (!next) return line.y;
-      const t0 = T[line.start];
-      const span = T[next.start] - t0;
+      const t0 = motion[line.start];
+      const span = motion[next.start] - t0;
       if (span <= 0) return line.y;
-      const frac = Math.min(1, Math.max(0, (T[i] + f * dur[i] - t0) / span));
+      const frac = Math.min(1, Math.max(0, (motion[i] + Math.min(f * dur[i], motionDur[i]) - t0) / span));
       return line.y + (next.y - line.y) * frac;
     }
 
@@ -148,27 +156,29 @@
         if (!next) return total;
         if (y < next.y) {
           const frac = (y - lines[k].y) / (next.y - lines[k].y);
-          return T[lines[k].start] + frac * (T[next.start] - T[lines[k].start]);
+          const p = posAtTime(motion[lines[k].start] + frac * (motion[next.start] - motion[lines[k].start]), motion, motionDur);
+          return T[p.i] + p.f * motionDur[p.i];
         }
       }
       return total;
     }
 
-    function posAtTime(t) {
-      t = Math.min(Math.max(0, t), total);
+    function posAtTime(t, times = T, durations = dur) {
+      t = Math.min(Math.max(0, t), times[n]);
       let lo = 0, hi = n - 1;
       while (lo < hi) {
         const mid = (lo + hi + 1) >> 1;
-        if (T[mid] <= t) lo = mid; else hi = mid - 1;
+        if (times[mid] <= t) lo = mid; else hi = mid - 1;
       }
-      const d = dur[lo];
-      return { i: lo, f: d > 0 ? Math.min(1, (t - T[lo]) / d) : 0 };
+      const d = durations[lo];
+      return { i: lo, f: d > 0 ? Math.min(1, (t - times[lo]) / d) : 0 };
     }
 
     /* ---------- state ---------- */
     let pos = { i: Math.min(Math.max(0, rec.pos || 0), Math.max(0, n - 1)), f: 0 };
     let playing = false;
     let ended = false;
+    let holding = tokens[pos.i] && tokens[pos.i].t === 'hold';
     let raf = 0;
     let last = 0;
     let shownI = -1;
@@ -189,14 +199,16 @@
     }
 
     function updateTempo() {
-      tempoEl.textContent = wpm + ' WPM' + (adj ? ' (' + (adj > 0 ? '+' : '−') + Math.abs(adj) + ')' : '');
+      wpm = n ? wpmAt(pos.i) : F.clampTempo(base + adj);
+      const label = wpm + ' WPM' + (adj ? ' (' + (adj > 0 ? '+' : '−') + Math.abs(adj) + ')' : '');
+      if (tempoEl.textContent !== label) tempoEl.textContent = label;
     }
 
     function changeTempo(delta) {
-      const next = F.clampTempo(base + adj + delta);
-      if (next === wpm) return;
-      adj = next - base;
-      wpm = next;
+      const current = wpmAt(pos.i);
+      const next = F.clampTempo(current + delta);
+      if (next === current) return;
+      adj += next - current;
       buildTimeline();            // position is index-based, so it carries over untouched
       updateTempo();
       shownLeft = '';
@@ -214,6 +226,7 @@
       else target = (timeNow() - T[starts[cur]] > SKIP_BACK_GRACE || cur === 0) ? starts[cur] : starts[cur - 1];
       if (target === null) return;
       pos = { i: target, f: 0 };
+      holding = false;
       ended = false;
       setPlayIcon();
       render();
@@ -222,7 +235,8 @@
     }
 
     function updateReadouts() {
-      const left = '~' + F.formatDuration(total - timeNow()) + ' left';
+      const cue = tokens[pos.i];
+      const left = holding ? 'Hold · press Play' : cue.t === 'pause' ? 'Pause · ' + Math.ceil(dur[pos.i] * (1 - pos.f)) + 's' : '~' + F.formatDuration(total - timeNow()) + ' left';
       if (left !== shownLeft) { leftEl.textContent = left; shownLeft = left; }
     }
 
@@ -232,12 +246,13 @@
       text.style.transform = 'translate3d(0,' + (stage.clientHeight * MARKER - y).toFixed(1) + 'px,0)';
       updateHighlight();
       updateReadouts();
+      updateTempo();
     }
 
     function setPlayIcon() {
       const icon = ended ? 'restart' : (playing ? 'pause' : 'play');
       playBtn.innerHTML = ICON[icon];
-      playBtn.setAttribute('aria-label', ended ? 'Restart' : (playing ? 'Pause' : 'Play'));
+      playBtn.setAttribute('aria-label', ended ? 'Restart' : (playing ? 'Pause' : holding ? 'Resume' : 'Play'));
       root_.classList.toggle('is-paused', !playing);
       root_.classList.toggle('is-ended', ended);
     }
@@ -255,6 +270,7 @@
     function advance(dt) {
       let rem = dt;
       while (rem > 0 && pos.i < n) {
+        if (tokens[pos.i].t === 'hold' && pos.f < 1) { holding = true; pause(); return; }
         const d = dur[pos.i];
         const leftHere = d * (1 - pos.f);
         if (rem < leftHere) { pos.f += rem / d; rem = 0; }
@@ -280,6 +296,7 @@
       if (n === 0) return;
       drag = null;   // a gesture begun while paused cannot scrub after playback starts
       if (ended) { pos = { i: 0, f: 0 }; ended = false; shownI = -1; }
+      if (holding) { holding = false; pos.f = 1; }
       playing = true;
       last = performance.now();
       setPlayIcon();
@@ -312,6 +329,7 @@
       if (!drag.moved && Math.abs(dy) < 6) return;
       drag.moved = true;
       pos = posAtTime(timeAtY(drag.startY - dy));
+      holding = tokens[pos.i].t === 'hold';
       ended = false;
       setPlayIcon();
       render();
@@ -322,7 +340,7 @@
       drag = null;
       if (!d.moved && e.type !== 'pointercancel' && !playing) {
         const hit = d.target.closest && d.target.closest('[data-i]');
-        if (hit) { pos = { i: +hit.dataset.i, f: 0 }; ended = false; setPlayIcon(); render(); }
+        if (hit) { pos = { i: +hit.dataset.i, f: 0 }; holding = tokens[pos.i].t === 'hold'; ended = false; setPlayIcon(); render(); }
       }
       savePos();
     }
@@ -426,7 +444,7 @@
         document.removeEventListener('visibilitychange', onVisibility);
       },
       // exposed for tests
-      _state: () => ({ pos: { ...pos }, playing, ended, total, lines: lines.length, wpm, adj })
+      _state: () => ({ pos: { ...pos }, playing, ended, holding, total, lines: lines.length, wpm, adj })
     };
   }
 
