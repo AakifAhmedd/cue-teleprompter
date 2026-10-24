@@ -448,9 +448,15 @@ body.is-reading .storage-warning { position: fixed; z-index: 20; top: calc(64px 
 .agenda__row.is-drop-target { outline: 2px dashed var(--accent); outline-offset: -1px; }
 .reader__agenda-head [data-act="reorder"] { margin-top: 10px; }
 
-/* Wait cues belong to the controls, so entering or leaving them never inserts a scroll gap. */
-.reader__text .cue--wait { display: none; }
-.reader__bar > .reader__cue-status { pointer-events: none; max-width: min(680px, 90vw); padding: 8px 14px; border: 1px solid rgba(201,165,92,0.35); border-radius: var(--radius-s); color: var(--accent); background: var(--glass-strong); font-size: 14px; text-align: center; overflow-wrap: anywhere; }
+/* Inline advance warning and a stationary, prominent cue at the reading line. */
+.reader__text .cue--wait { display: inline-block; max-width: 100%; vertical-align: middle; margin: 0 .2em; padding: .25em .5em; border: 1px solid var(--accent); border-radius: var(--radius-s); background: rgba(201,165,92,.12); font: 700 .42em/1.25 var(--font-body); overflow-wrap: anywhere; }
+.reader__cue-status { position: absolute; z-index: 5; top: 38%; left: 50%; transform: translate(-50%, -50%); width: min(600px, calc(100% - 40px)); max-height: 48%; overflow: hidden; padding: clamp(14px, 3vw, 28px); border: 2px solid var(--accent); border-radius: var(--radius-m); color: var(--accent); background: var(--glass-strong); backdrop-filter: blur(20px); text-align: center; pointer-events: none; }
+.reader--line .reader__cue-status { top: 50%; }
+.reader__cue-status strong { display: block; font-size: clamp(18px, 4vw, 28px); text-transform: uppercase; letter-spacing: .12em; }
+.reader__cue-status span { display: block; margin: 6px 0; font-size: clamp(28px, 6vw, 64px); line-height: 1.15; font-weight: 700; overflow-wrap: anywhere; max-height: 3.5em; overflow: auto; }
+.reader__cue-status small { display: block; color: var(--text); font-size: clamp(13px, 2vw, 18px); }
+.reader.is-waiting .reader__text { opacity: .22; }
+
 .reader__agenda-head { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 4px 8px; }
 .reader__agenda-head h2, .reader__agenda-head > span { grid-column: 1; }
 .reader__agenda-head [data-act="reorder"] { grid-column: 2; grid-row: 1 / span 2; margin-top: 0; }

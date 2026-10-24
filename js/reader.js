@@ -57,7 +57,7 @@
     let html = '';
     tokens.forEach((t, i) => {
       if (t.t === 'w') html += '<span class="w' + (t.em ? ' em' : '') + '" data-i="' + i + '">' + esc(t.s) + '</span> ';
-      else if (t.t === 'pause' || t.t === 'hold') html += '<span class="cue cue--wait" aria-hidden="true" data-i="' + i + '">' + esc(t.t === 'pause' ? 'Pause ' + t.seconds + 's' : t.s) + '</span>';
+      else if (t.t === 'pause' || t.t === 'hold') html += '<span class="cue cue--wait" data-i="' + i + '">' + esc(t.t === 'pause' ? 'Ⅱ Pause ' + t.seconds + 's' : 'Ⅱ Hold · ' + t.s) + '</span> ';
       else if (t.t === 'note') html += '<div class="cue" data-i="' + i + '">' + esc(t.t === 'pause' ? 'Pause ' + t.seconds + 's' : t.s) + '</div>';
       else if (t.t === 'h') html += '<div class="sect" data-i="' + i + '">' + esc(t.s) + '</div>';
       else html += '<div class="gap" data-i="' + i + '"></div>';
@@ -70,7 +70,7 @@
     const sidebar = sections.length ? '<aside class="reader__agenda" aria-label="Event agenda markers"><div class="reader__agenda-head"><h2>Event agenda</h2><span class="mono">' + sections.length + ' sections</span><button class="btn btn--small" data-act="reorder" aria-pressed="false">Reorder</button></div><nav class="agenda-list" aria-label="Script sections">' + sectionList + '</nav><p class="reader__agenda-hint">Select a section to pause and jump.</p></aside>' : '';
     const sectionStrip = sections.length ? '<button class="reader__section" data-act="agenda" aria-label="Open event agenda"><span class="reader__section-number mono" data-el="sectionNumber"></span><span class="reader__section-content"><span data-el="sectionTitle"></span><span class="reader__section-next" data-el="sectionNext"></span></span><span aria-hidden="true">⌄</span></button>' : '';
     root_.innerHTML = sidebar + sectionStrip +
-      '<div class="reader__stage"><div class="reader__guide" aria-hidden="true"></div><div class="reader__text">' + html + '<div class="reader__end">end of script</div></div><div class="reader__fade reader__fade--past" aria-hidden="true"></div><div class="reader__fade reader__fade--next" aria-hidden="true"></div></div>' +
+      '<div class="reader__stage"><div class="reader__guide" aria-hidden="true"></div><div class="reader__cue-status" data-el="cueStatus" role="status" hidden><strong data-el="cueTitle"></strong><span data-el="cueDetail"></span><small data-el="cueHint"></small></div><div class="reader__text">' + html + '<div class="reader__end">end of script</div></div><div class="reader__fade reader__fade--past" aria-hidden="true"></div><div class="reader__fade reader__fade--next" aria-hidden="true"></div></div>' +
       '<div class="reader__top">' +
         '<button class="icon-btn" data-act="exit" aria-label="Back to scripts">' + ICON.back + '</button>' +
         '<div class="reader__title">' + esc(sc.title) + '</div>' +
@@ -93,7 +93,6 @@
         '<div class="agenda-list">' + sectionList + '</div></dialog>' +
       '<div class="reader__countdown" data-el="countdown" role="status" aria-live="polite" hidden></div>' +
       '<div class="reader__bar">' +
-        '<div class="reader__cue-status" data-el="cueStatus" role="status" hidden></div>' +
         '<div class="reader__stats mono" data-el="stats"></div>' +
         '<div class="reader__tempo mono" data-el="tempo"></div>' +
         '<div class="reader__ctl">' +
@@ -181,7 +180,7 @@
       const header = root_.querySelector('.reader__top');
       const bar = root_.querySelector('.reader__bar');
       const topEdge = Math.max(header.offsetHeight, strip && strip.offsetHeight ? strip.offsetTop + strip.offsetHeight : 0) + 12;
-      const firstReadout = cueStatus.offsetHeight ? cueStatus : statsEl.offsetHeight ? statsEl : tempoEl;
+      const firstReadout = statsEl.offsetHeight ? statsEl : tempoEl;
       const bottomEdge = bar.offsetTop + firstReadout.offsetTop - 12;
       const halfRoom = Math.max(16, Math.min(stage.clientHeight / 2 - topEdge, bottomEdge - stage.clientHeight / 2));
       root_.style.setProperty('--guide-half', Math.min(targetHeight / 2, halfRoom) + 'px');
@@ -430,9 +429,19 @@
       if (statsEl.textContent !== stats) statsEl.textContent = stats;
       const cue = tokens[pos.i];
       const waiting = cue.t === 'pause' || cue.t === 'hold';
-      const status = cue.t === 'hold' ? 'Hold · ' + cue.s : cue.t === 'pause' ? 'Pause · ' + Math.ceil(dur[pos.i] * (1 - pos.f)) + 's' : '';
-      if (cueStatus.textContent !== status) cueStatus.textContent = status;
-      if (cueStatus.hidden === waiting) { cueStatus.hidden = !waiting; layout(); }
+      cueStatus.hidden = !waiting;
+      root_.classList.toggle('is-waiting', waiting);
+      if (waiting) {
+        const labels = {
+          cueTitle: cue.t === 'hold' ? 'Hold' : 'Pause',
+          cueDetail: cue.t === 'hold' ? cue.s : Math.max(1, Math.ceil(dur[pos.i] * (1 - pos.f))) + 's',
+          cueHint: cue.t === 'hold' ? 'Press Play when ready' : playing ? 'Continue automatically' : 'Press Play to resume the countdown'
+        };
+        for (const [key, value] of Object.entries(labels)) {
+          const node = cueStatus.querySelector('[data-el="' + key + '"]');
+          if (node.textContent !== value) node.textContent = value;
+        }
+      }
       const left = holding ? 'Hold · press Play' : cue.t === 'pause' ? 'Pause · ' + Math.ceil(dur[pos.i] * (1 - pos.f)) + 's' : '~' + F.formatDuration(total - timeNow()) + ' left';
       if (left !== shownLeft) { leftEl.textContent = left; shownLeft = left; }
     }

@@ -145,9 +145,11 @@ your existing copy or adds a fresh copy if you removed it. Personal settings are
 preserved. The previous public-domain speech came from the
 [U.S. National Park Service transcript](https://www.nps.gov/linc/learn/historyculture/lincoln-second-inaugural.htm).
 
-Timed pauses and holds use a stationary status badge rather than a separate row in
-the scrolling text. This keeps the same scroll position at entry and exit while
-preserving cue duration. The tutorial is regression-tested at 300 WPM to check
+Timed pauses and holds have inline markers so you can see them coming. During
+the cue, a large stationary card at the reading line shows the remaining seconds
+or hold reason, with the script dimmed behind it. Pauses resume automatically;
+holds wait for Play. A manually paused countdown stays frozen. The cue card
+does not change the scrolling geometry or timing. The tutorial is regression-tested at 300 WPM to check
 these transitions on phone and desktop layouts.
 
 ## Reading width and line spacing
