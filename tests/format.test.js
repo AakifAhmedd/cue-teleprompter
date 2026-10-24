@@ -102,4 +102,7 @@ assert.throws(() => F.moveSection(agendaSource, 0, 5));
 assert.strictEqual(F.sourceSections('---\n## not a body heading\n---\n## Body\nwords').sections.length, 1);
 assert.deepStrictEqual(F.readerLayout({ readingWidth: 1, lineSpacing: 9 }), { readingWidth: 50, lineSpacing: 2.2 });
 assert.deepStrictEqual(F.readerLayout({ readingWidth: NaN, lineSpacing: Infinity }), { readingWidth: 100, lineSpacing: 1.5 });
+assert.strictEqual(F.positionAfterEdit(F.parse('one two three four').tokens, F.parse('new one two three four').tokens, 2), 3);
+assert.strictEqual(F.positionAfterEdit(F.parse('one two three four').tokens, F.parse('one two NEW four').tokens, 2), 2);
+assert.strictEqual(F.positionAfterEdit(F.parse('one two three four').tokens, F.parse('one two three four extra').tokens, 1), 1);
 console.log('format tests passed');

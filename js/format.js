@@ -103,6 +103,17 @@
     return parts.prefix + parts.sections.map((block, i) => i < parts.sections.length - 1 && !/[\r\n]$/.test(block) ? block + '\n\n' : block).join('');
   }
 
+  function positionAfterEdit(before, after, index) {
+    if (!after.length) return 0;
+    const key = token => token.t + ':' + (token.s || '') + ':' + (token.seconds || '');
+    let prefix = 0, suffix = 0;
+    while (prefix < before.length && prefix < after.length && key(before[prefix]) === key(after[prefix])) prefix++;
+    while (suffix < before.length - prefix && suffix < after.length - prefix && key(before[before.length - 1 - suffix]) === key(after[after.length - 1 - suffix])) suffix++;
+    if (index < prefix) return index;
+    if (index >= before.length - suffix) return Math.max(0, after.length - (before.length - index));
+    return Math.min(prefix, after.length - 1);
+  }
+
   function punctClass(word) {
     const w = word.replace(/["'’”)\]]+$/, '');
     if (/[.!?…]$/.test(w)) return ABBREVIATIONS.test(w) ? 0 : 2;
@@ -227,7 +238,7 @@
     return m + ':' + String(s).padStart(2, '0');
   }
 
-  const api = { DEFAULT_TEMPO, MIN_TEMPO, MAX_TEMPO, clampTempo, pacing, readerLayout, playbackPacing, sourceSections, moveSection, parse, beats, sentenceStarts, tokenSeconds, tempoFor, estimateSeconds, formatDuration };
+  const api = { DEFAULT_TEMPO, MIN_TEMPO, MAX_TEMPO, clampTempo, pacing, readerLayout, playbackPacing, sourceSections, moveSection, positionAfterEdit, parse, beats, sentenceStarts, tokenSeconds, tempoFor, estimateSeconds, formatDuration };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.CueFormat = api;
 })(typeof self !== 'undefined' ? self : this);

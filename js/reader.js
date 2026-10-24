@@ -85,7 +85,9 @@
         '<label class="sheet__focus">Reading width <output data-el="widthValue"></output><input aria-label="Reading width" data-el="width" type="range" min="50" max="100" step="5"></label>' +
         '<label class="sheet__focus">Line spacing <output data-el="spacingValue"></output><input aria-label="Line spacing" data-el="spacing" type="range" min="1.2" max="2.2" step="0.1"></label>' +
         '<label class="sheet__focus">Reading focus<select aria-label="Reading focus" data-el="focus"><option value="word">Word by word</option><option value="line">Centre guide</option></select></label>' +
+        '<button class="btn btn--small sheet__edit" data-act="edit">Quick edit</button>' +
       '</div>' +
+      '<dialog class="quick-editor" aria-labelledby="quick-edit-title"><div class="toolbar"><h2 id="quick-edit-title">Quick edit</h2><button class="btn btn--small" data-act="discard-edit">Discard changes</button><button class="btn btn--primary btn--small" data-act="save-edit">Save quick edits</button></div><p class="muted">Save to update this script on your device. Reading stays paused at your place, or at the start of text you changed.</p><textarea class="editor" data-el="editText" aria-label="Edit script text" spellcheck="false" autocapitalize="off" autocomplete="off"></textarea><p class="muted" data-el="editSummary" role="status"></p></dialog>' +
       '<dialog class="agenda" aria-labelledby="agenda-title"><div class="toolbar"><h2 id="agenda-title">Agenda</h2><button class="btn btn--small" data-act="reorder" aria-pressed="false">Reorder</button><button class="btn btn--small" data-act="close-agenda">Close</button></div>' +
         '<p class="muted" data-el="agendaHelp">Choose a section, then press Play. Shortcuts: 1–9, Page Up / Page Down.</p>' +
         '<div class="agenda-list">' + sectionList + '</div></dialog>' +
@@ -110,6 +112,10 @@
     const leftEl = root_.querySelector('[data-el="left"]');
     const tempoEl = root_.querySelector('[data-el="tempo"]');
     const agenda = root_.querySelector('.agenda');
+    const quickEditor = root_.querySelector('.quick-editor');
+    const editText = root_.querySelector('[data-el="editText"]');
+    const editButton = root_.querySelector('[data-act="edit"]');
+    const editSave = root_.querySelector('[data-act="save-edit"]');
     const countdownEl = root_.querySelector('[data-el="countdown"]');
     const cueStatus = root_.querySelector('[data-el="cueStatus"]');
     const statsEl = root_.querySelector('[data-el="stats"]');
@@ -226,6 +232,7 @@
     /* ---------- state ---------- */
     let pos = { i: Math.min(Math.max(0, rec.pos || 0), Math.max(0, n - 1)), f: 0 };
     if (Number.isInteger(options.section) && sections[options.section]) pos = { i: sections[options.section].i, f: 0 };
+    if (Number.isInteger(options.position)) pos = { i: Math.max(0, Math.min(n - 1, options.position)), f: 0 };
     let reordering = false;
     let playing = false;
     let countdown = 0;
@@ -288,6 +295,31 @@
       savePos();
       wake();
     }
+
+    function refreshEdit() {
+      const edited = F.parse(editText.value, pacing);
+      editSave.disabled = edited.words === 0;
+      root_.querySelector('[data-el="editSummary"]').textContent = edited.words + ' words' + (edited.warnings.length ? ' · ' + edited.warnings.join('; ') : '');
+    }
+    function openQuickEdit() {
+      if (playing) return;
+      setReordering(false); sheet.hidden = true;
+      editText.value = rec.text; refreshEdit(); quickEditor.showModal();
+      const parts = F.sourceSections(rec.text);
+      let chapter = -1;
+      sections.forEach((section, k) => { if (section.i <= pos.i) chapter = k; });
+      const offset = chapter >= 0 ? parts.prefix.length + parts.sections.slice(0, chapter).join('').length : 0;
+      editText.focus(); editText.setSelectionRange(offset, offset);
+    }
+    function saveQuickEdit() {
+      const edited = F.parse(editText.value, pacing);
+      if (!edited.words || !onReorder) return;
+      if (editText.value === rec.text) { quickEditor.close(); return; }
+      const position = F.positionAfterEdit(tokens, edited.tokens, pos.i);
+      onReorder(editText.value, undefined, false, { position, reordering: false });
+    }
+    editText.addEventListener('input', refreshEdit);
+    quickEditor.addEventListener('close', () => { if (!destroyed) playBtn.focus({ preventScroll: true }); });
 
     function setReordering(value) {
       if (value) { pause(); drag = null; }
@@ -408,12 +440,16 @@
     function setPlayIcon() {
       const icon = ended ? 'restart' : (playing ? 'pause' : 'play');
       playBtn.innerHTML = ICON[icon];
+      editButton.disabled = playing;
+      editButton.title = playing ? 'Pause playback to edit' : 'Edit this script without leaving the reader';
       playBtn.setAttribute('aria-label', ended ? 'Restart' : (playing ? 'Pause' : holding ? 'Resume' : 'Play'));
       root_.classList.toggle('is-paused', !playing);
       root_.classList.toggle('is-ended', ended);
     }
 
     function savePos() {
+      const latest = S.get(rec.id);
+      if (!latest || latest.text !== rec.text) return;
       S.save({ id: rec.id, pos: ended ? 0 : pos.i }, false);
     }
 
@@ -540,10 +576,13 @@
       }
       else if (act === 'reorder') setReordering(!reordering);
       else if (act === 'close-agenda') { setReordering(false); agenda.close(); }
+      else if (act === 'edit') openQuickEdit();
+      else if (act === 'save-edit') saveQuickEdit();
+      else if (act === 'discard-edit') quickEditor.close();
       else if (act === 'size') sheet.hidden = !sheet.hidden;
     });
     function onKey(e) {
-      if (agenda.open || reordering) return;
+      if (agenda.open || quickEditor.open || reordering) return;
       if (e.defaultPrevented || e.altKey || e.ctrlKey || e.metaKey) return;
       if (e.target.closest('input, textarea, select, [contenteditable="true"]')) return;
       if (e.code === 'Space') {
@@ -552,6 +591,7 @@
         e.preventDefault();
         if (!e.repeat) toggle();
       }
+      else if (e.code === 'KeyE' && !playing) { e.preventDefault(); openQuickEdit(); }
       else if (e.code === 'Escape') exit();
       else if (/^Digit[1-9]$/.test(e.code) && !e.repeat) { e.preventDefault(); jumpSection(Number(e.code.slice(-1)) - 1); }
       else if (e.code === 'PageDown') { e.preventDefault(); const k = sections.findIndex(section => section.i > pos.i); if (k >= 0) jumpSection(k); }
@@ -661,6 +701,7 @@
       destroy() {
         if (destroyed) return;
         destroyed = true;
+        quickEditor.close();
         agenda.close();
         playing = false;
         savePos();

@@ -301,15 +301,16 @@
   let current = null;   // the open reader, so it can be cleaned up on navigation
 
   function mountReader(rec, options) {
-    current = CueReader.open(view, rec, () => { location.hash = '#/'; }, (text, section, agendaOpen) => {
+    current = CueReader.open(view, rec, () => { location.hash = '#/'; }, (text, section, agendaOpen, editOptions = {}) => {
       const latest = S.get(rec.id);
       if (!latest || latest.text !== rec.text) {
-        toast('The script changed in another tab. Reopen it before reordering.');
-        location.hash = '#/'; return;
+        toast('The script changed in another tab. Keep a copy of your edits and reopen the script.');
+        return false;
       }
       current.destroy(); current = null;
       const updated = S.save({ id: rec.id, text });
-      mountReader(updated, { section, agendaOpen, reordering: true });
+      mountReader(updated, { section, agendaOpen, reordering: true, ...editOptions });
+      return true;
     }, options);
     window.__cueReader = current;
   }

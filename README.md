@@ -157,3 +157,12 @@ text column) and line spacing (1.2–2.2×). The defaults remain full width and 
 Aa applies changes immediately without moving the token position, changing WPM,
 or restarting playback. Both choices are remembered on the device. The focus
 window continues to measure actual rendered rows at your chosen line spacing.
+
+## Paused quick editing
+
+Pause, open **Aa → Quick edit**, or press **E** while paused. The editor opens
+near your current chapter. **Save quick edits** updates the existing script and
+keeps reading paused, preserving your place in unchanged text or returning to
+the start of the passage you changed. **Discard changes** leaves the script
+untouched. Quick editing is disabled during playback. Empty scripts cannot be
+saved, and edits from another tab are not overwritten silently.

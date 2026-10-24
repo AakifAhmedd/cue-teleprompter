@@ -458,3 +458,10 @@ body.is-reading .storage-warning { position: fixed; z-index: 20; top: calc(64px 
 .sheet { max-height: calc(100dvh - 90px - var(--safe-top)); overflow-y: auto; }
 .settings input[type="range"] { width: 100%; accent-color: var(--accent); }
 .settings output, .sheet output { font: 12px var(--font-mono); color: var(--accent); }
+
+.sheet__edit { width: 100%; margin-top: 18px; }
+.quick-editor { width: min(800px, calc(100% - 28px)); max-height: 88dvh; padding: 18px; overflow: auto; background: var(--bg); color: var(--text); border: 1px solid var(--glass-border); border-radius: var(--radius-m); }
+.quick-editor::backdrop { background: rgba(0,0,0,0.75); }
+.quick-editor h2 { margin: 0; font-size: 20px; }
+.quick-editor p { font-size: 13px; overflow-wrap: anywhere; }
+.quick-editor .editor { height: min(52dvh, 480px); min-height: 160px; }
